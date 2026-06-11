@@ -16,27 +16,87 @@ _DEMO: dict[str, list[tuple[str, str, str, str]]] = {
     "Programming": [
         ("Python Basics", "Learn Python from scratch.", "49.00", "https://example.com/python"),
         ("Async FastAPI", "Build async APIs with FastAPI.", "79.00", "https://example.com/fastapi"),
-        ("Clean Architecture in Python", "Layered, SOLID, testable design.", "99.00", "https://example.com/clean-arch"),
-        ("SQLAlchemy 2.0 Async", "Async ORM, sessions and migrations.", "69.00", "https://example.com/sqlalchemy"),
+        (
+            "Clean Architecture in Python",
+            "Layered, SOLID, testable design.",
+            "99.00",
+            "https://example.com/clean-arch",
+        ),
+        (
+            "SQLAlchemy 2.0 Async",
+            "Async ORM, sessions and migrations.",
+            "69.00",
+            "https://example.com/sqlalchemy",
+        ),
     ],
     "Design": [
         ("UI/UX Fundamentals", "Principles of good design.", "59.00", "https://example.com/uiux"),
-        ("Figma for Beginners", "Design interfaces and prototypes in Figma.", "39.00", "https://example.com/figma"),
-        ("Design Systems", "Build scalable, reusable component systems.", "89.00", "https://example.com/design-systems"),
+        (
+            "Figma for Beginners",
+            "Design interfaces and prototypes in Figma.",
+            "39.00",
+            "https://example.com/figma",
+        ),
+        (
+            "Design Systems",
+            "Build scalable, reusable component systems.",
+            "89.00",
+            "https://example.com/design-systems",
+        ),
     ],
     "DevOps": [
-        ("Docker Essentials", "Containerize and run apps with Docker.", "55.00", "https://example.com/docker"),
-        ("CI/CD with GitHub Actions", "Automate build, test and deploy pipelines.", "75.00", "https://example.com/cicd"),
-        ("Kubernetes Basics", "Deploy and scale services on Kubernetes.", "120.00", "https://example.com/k8s"),
+        (
+            "Docker Essentials",
+            "Containerize and run apps with Docker.",
+            "55.00",
+            "https://example.com/docker",
+        ),
+        (
+            "CI/CD with GitHub Actions",
+            "Automate build, test and deploy pipelines.",
+            "75.00",
+            "https://example.com/cicd",
+        ),
+        (
+            "Kubernetes Basics",
+            "Deploy and scale services on Kubernetes.",
+            "120.00",
+            "https://example.com/k8s",
+        ),
     ],
     "Data Science": [
-        ("Pandas Crash Course", "Data wrangling and analysis with Pandas.", "65.00", "https://example.com/pandas"),
-        ("Machine Learning 101", "Core ML concepts and first models.", "129.00", "https://example.com/ml"),
-        ("SQL for Analytics", "Query and analyze data with SQL.", "45.00", "https://example.com/sql"),
+        (
+            "Pandas Crash Course",
+            "Data wrangling and analysis with Pandas.",
+            "65.00",
+            "https://example.com/pandas",
+        ),
+        (
+            "Machine Learning 101",
+            "Core ML concepts and first models.",
+            "129.00",
+            "https://example.com/ml",
+        ),
+        (
+            "SQL for Analytics",
+            "Query and analyze data with SQL.",
+            "45.00",
+            "https://example.com/sql",
+        ),
     ],
     "Marketing": [
-        ("Telegram Bots for Business", "Grow sales with Telegram bot funnels.", "59.00", "https://example.com/tg-bots"),
-        ("SEO Fundamentals", "Rank higher with on-page and technical SEO.", "49.00", "https://example.com/seo"),
+        (
+            "Telegram Bots for Business",
+            "Grow sales with Telegram bot funnels.",
+            "59.00",
+            "https://example.com/tg-bots",
+        ),
+        (
+            "SEO Fundamentals",
+            "Rank higher with on-page and technical SEO.",
+            "49.00",
+            "https://example.com/seo",
+        ),
     ],
 }
 
@@ -75,9 +135,7 @@ async def seed() -> None:
                 )
                 added_courses += 1
         await session.commit()
-        logger.info(
-            "Seed complete: +{} categories, +{} courses.", added_categories, added_courses
-        )
+        logger.info("Seed complete: +{} categories, +{} courses.", added_categories, added_courses)
     await database.dispose()
 
 
