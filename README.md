@@ -35,6 +35,20 @@ Open:
 Use `APP_ENV=development` for development/testing and `APP_ENV=production` for production. Use a
 different Telegram bot token in each profile.
 
+Multilingual defaults:
+
+```text
+SUPPORTED_LANGUAGES=uk,en
+DEFAULT_LANGUAGE=uk
+SEARCH_SUGGESTION_MIN_CHARS=3
+SEARCH_SUGGESTION_LIMIT=5
+PARSER_REQUEST_TIMEOUT_SECONDS=10
+```
+
+The bot asks new users to choose a language, stores the preference, and reuses it for later catalog,
+search, order, and payment messages. Catalog translations fall back to the default course/category
+text when a localized field is missing.
+
 SQLite is the phase-1 default:
 
 ```text
@@ -56,5 +70,11 @@ docker compose exec app pytest
 ```
 
 The suite covers health, catalog endpoints, full-text search, order creation, simulated payment,
-payment webhook signature validation/idempotency, admin authentication, and the rate limiter.
+payment webhook signature validation/idempotency, admin authentication, multilingual catalog/search,
+parser jobs, and the rate limiter.
+
+## Parser Workflow
+
+Admins can configure parser sources and start parser jobs from admin/API flows. Parsed items are saved
+as draft/imported review records and are not visible in the bot until approved and activated.
 

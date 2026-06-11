@@ -12,6 +12,7 @@ def _to_entity(model: BotUserModel) -> BotUser:
         telegram_id=model.telegram_id,
         username=model.username,
         full_name=model.full_name,
+        preferred_language=model.preferred_language,
         extra=dict(model.extra),
     )
 
@@ -37,11 +38,13 @@ class SqlBotUserRepository(BotUserRepository):
                 telegram_id=user.telegram_id,
                 username=user.username,
                 full_name=user.full_name,
+                preferred_language=user.preferred_language,
                 extra=user.extra,
             )
             self._session.add(model)
         else:
             model.username = user.username
             model.full_name = user.full_name
+            model.preferred_language = user.preferred_language
         await self._session.flush()
         return _to_entity(model)

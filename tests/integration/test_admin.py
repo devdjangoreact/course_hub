@@ -1,5 +1,5 @@
-from httpx import AsyncClient
 from fastapi import FastAPI
+from httpx import AsyncClient
 
 from app.domain.entities.bot_settings import BotSettings
 from app.domain.entities.payment_settings import PaymentSettings

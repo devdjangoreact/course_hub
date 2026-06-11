@@ -38,6 +38,11 @@ class Settings(BaseSettings):
 
     search_rate_limit: int = 5
     search_rate_window_seconds: int = 60
+    supported_languages: str = "uk,en"
+    default_language: str = "uk"
+    search_suggestion_min_chars: int = 3
+    search_suggestion_limit: int = 5
+    parser_request_timeout_seconds: int = 10
 
     @property
     def is_development(self) -> bool:

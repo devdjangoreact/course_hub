@@ -5,7 +5,12 @@ from aiogram import BaseMiddleware
 from aiogram.types import TelegramObject
 
 from app.bot.context import BotRuntime
-from app.container import build_catalog_service, build_order_service, build_search_service
+from app.container import (
+    build_catalog_service,
+    build_localization_service,
+    build_order_service,
+    build_search_service,
+)
 from app.infrastructure.db.repositories.bot_user_repository import SqlBotUserRepository
 
 
@@ -24,9 +29,8 @@ class ServicesMiddleware(BaseMiddleware):
         runtime = self._runtime
         async with runtime.database.session_factory() as session:
             data["catalog"] = build_catalog_service(session)
-            data["search"] = build_search_service(
-                session, runtime.settings, runtime.rate_limiter
-            )
+            data["localization"] = build_localization_service(session)
+            data["search"] = build_search_service(session, runtime.settings, runtime.rate_limiter)
             data["orders"] = build_order_service(session, runtime.payment_gateway)
             data["bot_users"] = SqlBotUserRepository(session)
             try:

@@ -46,9 +46,8 @@ async def payment_webhook(
     order = await service.confirm_payment(payload.payment_reference, payload.status)
     user = await service.get_order_user(order)
     bot_app = getattr(request.app.state, "bot_app", None)
-    if order.id is not None:
-        if bot_app is not None:
-            await bot_app.notify_payment_status(user.telegram_id, order.id, order.status.value)
+    if order.id is not None and bot_app is not None:
+        await bot_app.notify_payment_status(user.telegram_id, order.id, order.status.value)
     return {"ok": True}
 
 

@@ -8,7 +8,10 @@ from loguru import logger
 
 from app.bot.context import BotRuntime
 from app.bot.handlers import categories, order, search, start
+from app.bot.messages.catalog import DEFAULT_LANGUAGE
+from app.bot.messages.catalog import message as bot_message
 from app.bot.middleware import ServicesMiddleware
+from app.infrastructure.db.repositories.bot_user_repository import SqlBotUserRepository
 from app.infrastructure.settings_store.bot_settings_repository import SqlBotSettingsRepository
 
 
@@ -62,7 +65,10 @@ class BotApp:
     async def notify_payment_status(self, telegram_id: int, order_id: int, status: str) -> None:
         if self._bot is None:
             return
+        async with self._runtime.database.session_factory() as session:
+            user = await SqlBotUserRepository(session).get_by_telegram_id(telegram_id)
+        language = user.preferred_language if user is not None else DEFAULT_LANGUAGE
         await self._bot.send_message(
             telegram_id,
-            f"Order #{order_id} payment status: {status}.",
+            f"{bot_message(language, 'payment_status')} #{order_id}: {status}.",
         )

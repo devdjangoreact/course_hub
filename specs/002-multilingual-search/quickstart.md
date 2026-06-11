@@ -84,6 +84,10 @@ Expected:
 - Re-running the same source does not create duplicate public catalog items.
 - Parser errors are safe for admin display and do not leak secrets.
 
+The same flow is available through `/api/admin/parser-sources`,
+`/api/admin/parser-sources/{source_id}/jobs`, `/api/admin/parser-jobs/{job_id}`, and
+`/api/admin/imported-items/{item_id}/approve`.
+
 ## Automated Validation
 
 When explicitly requested, run the feature test suite through Docker/Poetry:

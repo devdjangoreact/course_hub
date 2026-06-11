@@ -14,7 +14,5 @@ class OrderModel(Base, ExtraMixin, TimestampMixin):
     bot_user_id: Mapped[int] = mapped_column(ForeignKey("bot_users.id"), index=True)
     course_id: Mapped[int] = mapped_column(ForeignKey("courses.id"), index=True)
     amount: Mapped[Decimal] = mapped_column(Numeric(12, 2))
-    status: Mapped[str] = mapped_column(
-        String(16), default=OrderStatus.PENDING.value, index=True
-    )
+    status: Mapped[str] = mapped_column(String(16), default=OrderStatus.PENDING.value, index=True)
     payment_reference: Mapped[str | None] = mapped_column(unique=True, default=None)

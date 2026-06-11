@@ -6,10 +6,18 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.application.services.catalog_service import CatalogService
 from app.application.services.order_service import OrderService
+from app.application.services.parser_service import ParserService
 from app.application.services.search_service import SearchService
-from app.container import build_catalog_service, build_order_service, build_search_service
+from app.container import (
+    build_catalog_service,
+    build_language_repository,
+    build_order_service,
+    build_parser_service,
+    build_search_service,
+)
 from app.core.config import Settings, get_settings
 from app.core.database import Database
+from app.domain.repositories.language_repository import LanguageRepository
 from app.domain.repositories.payment_gateway import PaymentGateway
 from app.domain.repositories.rate_limiter import RateLimiter
 
@@ -46,6 +54,10 @@ def get_catalog_service(session: SessionDep) -> CatalogService:
     return build_catalog_service(session)
 
 
+def get_language_repository(session: SessionDep) -> LanguageRepository:
+    return build_language_repository(session)
+
+
 def get_search_service(
     session: SessionDep,
     settings: SettingsDep,
@@ -61,6 +73,12 @@ def get_order_service(
     return build_order_service(session, gateway)
 
 
+def get_parser_service(session: SessionDep) -> ParserService:
+    return build_parser_service(session)
+
+
 CatalogServiceDep = Annotated[CatalogService, Depends(get_catalog_service)]
+LanguageRepositoryDep = Annotated[LanguageRepository, Depends(get_language_repository)]
 SearchServiceDep = Annotated[SearchService, Depends(get_search_service)]
 OrderServiceDep = Annotated[OrderService, Depends(get_order_service)]
+ParserServiceDep = Annotated[ParserService, Depends(get_parser_service)]

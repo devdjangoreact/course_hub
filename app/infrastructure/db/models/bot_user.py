@@ -11,3 +11,4 @@ class BotUserModel(Base, ExtraMixin, TimestampMixin):
     telegram_id: Mapped[int] = mapped_column(BigInteger, unique=True, index=True)
     username: Mapped[str | None] = mapped_column(default=None)
     full_name: Mapped[str | None] = mapped_column(default=None)
+    preferred_language: Mapped[str] = mapped_column(default="uk", index=True)

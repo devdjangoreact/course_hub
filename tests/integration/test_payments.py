@@ -14,9 +14,7 @@ def _sign(payload: dict[str, str]) -> tuple[str, str]:
 
 
 async def _create_order(client: AsyncClient, course_id: int) -> dict[str, object]:
-    response = await client.post(
-        "/api/orders", json={"telegram_id": 999, "course_id": course_id}
-    )
+    response = await client.post("/api/orders", json={"telegram_id": 999, "course_id": course_id})
     assert response.status_code == 201
     return response.json()
 

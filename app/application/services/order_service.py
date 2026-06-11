@@ -45,8 +45,15 @@ class OrderService:
         username: str | None = None,
         full_name: str | None = None,
     ) -> tuple[Order, PaymentIntent]:
+        existing_user = await self._bot_users.get_by_telegram_id(telegram_id)
         user = await self._bot_users.upsert(
-            BotUser(id=None, telegram_id=telegram_id, username=username, full_name=full_name)
+            BotUser(
+                id=existing_user.id if existing_user else None,
+                telegram_id=telegram_id,
+                username=username,
+                full_name=full_name,
+                preferred_language=existing_user.preferred_language if existing_user else "uk",
+            )
         )
         course = await self._courses.get_active(course_id)
         if course is None:

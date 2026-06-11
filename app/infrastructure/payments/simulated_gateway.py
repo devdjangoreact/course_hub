@@ -16,16 +16,18 @@ class SimulatedPaymentGateway(PaymentGateway):
 
     async def create_payment(self, order: Order, settings: PaymentSettings) -> PaymentIntent:
         reference = f"sim_{uuid.uuid4().hex}"
-        pay_url = f"{self._backend_url}/api/payments/simulate?reference={reference}&result=succeeded"
+        pay_url = (
+            f"{self._backend_url}/api/payments/simulate?reference={reference}&result=succeeded"
+        )
         instructions = (
             f"Order #{order.id} created for {order.amount} {settings.currency}. "
             "Complete the simulated payment using the provided link."
         )
-        return PaymentIntent(payment_reference=reference, instructions=instructions, pay_url=pay_url)
+        return PaymentIntent(
+            payment_reference=reference, instructions=instructions, pay_url=pay_url
+        )
 
-    def verify_signature(
-        self, payload: bytes, signature: str, settings: PaymentSettings
-    ) -> bool:
+    def verify_signature(self, payload: bytes, signature: str, settings: PaymentSettings) -> bool:
         secret = (settings.secret_key or "").encode("utf-8")
         expected = hmac.new(secret, payload, hashlib.sha256).hexdigest()
         return hmac.compare_digest(expected, signature)

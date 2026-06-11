@@ -2,8 +2,8 @@ from sqlalchemy import text
 
 from app.core.config import Settings
 from app.core.database import Database
-from app.infrastructure.db.base import Base
 from app.infrastructure.db import models  # noqa: F401  (register models on Base)
+from app.infrastructure.db.base import Base
 
 _FTS_STATEMENTS = (
     """
@@ -29,6 +29,10 @@ _FTS_STATEMENTS = (
         INSERT INTO courses_fts(rowid, name, description)
         VALUES (new.id, new.name, new.description);
     END
+    """,
+    """
+    CREATE VIRTUAL TABLE IF NOT EXISTS localized_catalog_fts
+    USING fts5(item_type, item_id UNINDEXED, language_code, title, body)
     """,
 )
 

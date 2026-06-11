@@ -2,6 +2,8 @@ import asyncio
 from decimal import Decimal
 
 from loguru import logger
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.bootstrap import ensure_initial_data
 from app.core.config import get_settings
@@ -9,6 +11,8 @@ from app.core.database import Database
 from app.domain.entities.category import Category
 from app.domain.entities.course import Course
 from app.infrastructure.db.init_db import create_schema
+from app.infrastructure.db.models.category_translation import CategoryTranslationModel
+from app.infrastructure.db.models.course_translation import CourseTranslationModel
 from app.infrastructure.db.repositories.category_repository import SqlCategoryRepository
 from app.infrastructure.db.repositories.course_repository import SqlCourseRepository
 
@@ -100,6 +104,111 @@ _DEMO: dict[str, list[tuple[str, str, str, str]]] = {
     ],
 }
 
+_CATEGORY_TRANSLATIONS_UK = {
+    "Programming": "Програмування",
+    "Design": "Дизайн",
+    "DevOps": "DevOps",
+    "Data Science": "Наука про дані",
+    "Marketing": "Маркетинг",
+}
+
+_COURSE_TRANSLATIONS_UK: dict[str, tuple[str, str]] = {
+    "Python Basics": ("Основи Python", "Вивчіть Python з нуля."),
+    "Async FastAPI": ("Асинхронний FastAPI", "Створюйте асинхронні API з FastAPI."),
+    "Clean Architecture in Python": (
+        "Чиста архітектура в Python",
+        "Шарова, SOLID і тестована архітектура.",
+    ),
+    "SQLAlchemy 2.0 Async": (
+        "Асинхронний SQLAlchemy 2.0",
+        "Асинхронна ORM, сесії та міграції.",
+    ),
+    "UI/UX Fundamentals": ("Основи UI/UX", "Принципи якісного дизайну."),
+    "Figma for Beginners": (
+        "Figma для початківців",
+        "Проєктуйте інтерфейси та прототипи у Figma.",
+    ),
+    "Design Systems": (
+        "Дизайн-системи",
+        "Створюйте масштабовані й повторно використовувані компонентні системи.",
+    ),
+    "Docker Essentials": (
+        "Основи Docker",
+        "Контейнеризуйте та запускайте застосунки з Docker.",
+    ),
+    "CI/CD with GitHub Actions": (
+        "CI/CD з GitHub Actions",
+        "Автоматизуйте build, test і deploy pipelines.",
+    ),
+    "Kubernetes Basics": (
+        "Основи Kubernetes",
+        "Розгортайте та масштабуйте сервіси в Kubernetes.",
+    ),
+    "Pandas Crash Course": (
+        "Швидкий курс Pandas",
+        "Обробка й аналіз даних за допомогою Pandas.",
+    ),
+    "Machine Learning 101": (
+        "Основи машинного навчання",
+        "Ключові концепції ML і перші моделі.",
+    ),
+    "SQL for Analytics": (
+        "SQL для аналітики",
+        "Запитуйте й аналізуйте дані за допомогою SQL.",
+    ),
+    "Telegram Bots for Business": (
+        "Telegram-боти для бізнесу",
+        "Збільшуйте продажі через Telegram bot funnels.",
+    ),
+    "SEO Fundamentals": (
+        "Основи SEO",
+        "Покращуйте позиції за допомогою on-page і technical SEO.",
+    ),
+}
+
+
+async def _add_category_translation(
+    session: AsyncSession, category_id: int, language_code: str, name: str
+) -> bool:
+    stmt = select(CategoryTranslationModel).where(
+        CategoryTranslationModel.category_id == category_id,
+        CategoryTranslationModel.language_code == language_code,
+    )
+    if (await session.execute(stmt)).scalar_one_or_none() is not None:
+        return False
+    session.add(
+        CategoryTranslationModel(
+            category_id=category_id,
+            language_code=language_code,
+            name=name,
+        )
+    )
+    return True
+
+
+async def _add_course_translation(
+    session: AsyncSession,
+    course_id: int,
+    language_code: str,
+    name: str,
+    description: str,
+) -> bool:
+    stmt = select(CourseTranslationModel).where(
+        CourseTranslationModel.course_id == course_id,
+        CourseTranslationModel.language_code == language_code,
+    )
+    if (await session.execute(stmt)).scalar_one_or_none() is not None:
+        return False
+    session.add(
+        CourseTranslationModel(
+            course_id=course_id,
+            language_code=language_code,
+            name=name,
+            description=description,
+        )
+    )
+    return True
+
 
 async def seed() -> None:
     settings = get_settings()
@@ -113,12 +222,19 @@ async def seed() -> None:
         existing = {category.name: category for category in await categories.list_all()}
         added_categories = 0
         added_courses = 0
+        added_translations = 0
         for category_name, items in _DEMO.items():
             category = existing.get(category_name)
             if category is None:
                 category = await categories.add(Category(id=None, name=category_name))
                 added_categories += 1
             assert category.id is not None
+            translated_category = _CATEGORY_TRANSLATIONS_UK.get(category_name)
+            if translated_category is not None:
+                added = await _add_category_translation(
+                    session, category.id, "uk", translated_category
+                )
+                added_translations += 1 if added else 0
             present = {course.name for course in await courses.list_active_by_category(category.id)}
             for name, description, price, link in items:
                 if name in present:
@@ -134,8 +250,22 @@ async def seed() -> None:
                     )
                 )
                 added_courses += 1
+            for course in await courses.list_active_by_category(category.id):
+                translated_course = _COURSE_TRANSLATIONS_UK.get(course.name)
+                if translated_course is None or course.id is None:
+                    continue
+                translated_name, translated_description = translated_course
+                added = await _add_course_translation(
+                    session, course.id, "uk", translated_name, translated_description
+                )
+                added_translations += 1 if added else 0
         await session.commit()
-        logger.info("Seed complete: +{} categories, +{} courses.", added_categories, added_courses)
+        logger.info(
+            "Seed complete: +{} categories, +{} courses, +{} translations.",
+            added_categories,
+            added_courses,
+            added_translations,
+        )
     await database.dispose()
 
 
