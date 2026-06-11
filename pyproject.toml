@@ -1,0 +1,56 @@
+[tool.poetry]
+name = "course-hub"
+version = "0.1.0"
+description = "Async FastAPI backend with a Telegram bot for the Course Hub catalog, search, orders and admin."
+authors = ["devdjangoreact"]
+readme = "README.md"
+packages = [{ include = "app" }]
+
+[tool.poetry.dependencies]
+python = "^3.12"
+fastapi = "^0.115.0"
+uvicorn = "^0.32.0"
+sqlalchemy = { extras = ["asyncio"], version = "^2.0.36" }
+alembic = "^1.14.0"
+aiosqlite = "^0.20.0"
+asyncpg = "^0.30.0"
+aiogram = "^3.15.0"
+pydantic = "^2.10.0"
+pydantic-settings = "^2.6.0"
+sqladmin = "^0.20.0"
+itsdangerous = "^2.2.0"
+bcrypt = "^5.0.0"
+loguru = "^0.7.2"
+httpx = "^0.28.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.3.0"
+pytest-asyncio = "^0.24.0"
+ruff = "^0.8.0"
+black = "^24.10.0"
+mypy = "^1.13.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 100
+target-version = ["py312"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+plugins = ["pydantic.mypy"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]

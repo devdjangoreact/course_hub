@@ -1,0 +1,1 @@
+"""Course Hub application package."""
