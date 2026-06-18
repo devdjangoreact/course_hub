@@ -61,6 +61,34 @@ Switch to PostgreSQL by changing only `DATABASE_URL`:
 DATABASE_URL=postgresql+asyncpg://user:password@db:5432/course_hub
 ```
 
+## Payments (lava.top)
+
+Configure payments in the admin panel under **Settings → Payment Settings**
+(`http://localhost:8000/admin`). Changes apply immediately without restart:
+
+- **Provider**: `simulated` (local dev) or `lava`
+- **API key**: lava.top Public API key
+- **Webhook secret**: lava.top Webhook API key (`X-Api-Key`)
+- **Currency**: USD, EUR, or RUB
+- **Extra**: `{"lava_env": "production", "checkout_mode": "direct"}`
+
+Payment link mode (`checkout_mode` in **Extra** or `PAYMENT_LINK_MODE` in `.env` on first seed):
+
+- `direct` (default) — bot **Pay** button opens the payment provider URL directly
+- `checkout` — bot opens `{BACKEND_URL}/api/orders/{id}/checkout` (summary page, then pay)
+
+On first run, values are seeded from `.env` (`PAYMENT_PROVIDER`, `PAYMENT_API_KEY`,
+`PAYMENT_SECRET_KEY`, `PAYMENT_CURRENCY`, `LAVA_ENV`, `PAYMENT_LINK_MODE`). Map each course to a lava offer id in
+course `extra` (edit the **Course** record):
+
+```json
+{ "lava_offer_id": "<offer-uuid-from-lava-dashboard>" }
+```
+
+Webhook URL: `{BACKEND_URL}/api/payments/lava/webhook` (event type: **Payment result**).
+
+Development keeps `PAYMENT_PROVIDER=simulated` for local order/payment testing without external calls.
+
 ## Tests
 
 Run tests inside Docker:
@@ -70,8 +98,8 @@ docker compose exec app pytest
 ```
 
 The suite covers health, catalog endpoints, full-text search, order creation, simulated payment,
-payment webhook signature validation/idempotency, admin authentication, multilingual catalog/search,
-parser jobs, and the rate limiter.
+lava.top webhook handling, payment webhook signature validation/idempotency, admin authentication,
+multilingual catalog/search, parser jobs, and the rate limiter.
 
 ## Parser Workflow
 

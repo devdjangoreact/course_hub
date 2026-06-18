@@ -33,6 +33,7 @@ class ServicesMiddleware(BaseMiddleware):
             data["search"] = build_search_service(session, runtime.settings, runtime.rate_limiter)
             data["orders"] = build_order_service(session, runtime.payment_gateway)
             data["bot_users"] = SqlBotUserRepository(session)
+            data["settings"] = runtime.settings
             try:
                 result = await handler(event, data)
                 await session.commit()

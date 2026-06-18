@@ -22,6 +22,7 @@ itsdangerous = "^2.2.0"
 bcrypt = "^5.0.0"
 loguru = "^0.7.2"
 httpx = "^0.28.0"
+lava-top-sdk = "^1.1.1"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.0"

@@ -46,5 +46,8 @@ class SqlBotUserRepository(BotUserRepository):
             model.username = user.username
             model.full_name = user.full_name
             model.preferred_language = user.preferred_language
+            merged_extra = dict(model.extra)
+            merged_extra.update(user.extra)
+            model.extra = merged_extra
         await self._session.flush()
         return _to_entity(model)

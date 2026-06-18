@@ -1,3 +1,5 @@
+import hmac
+
 from app.application.errors import NotFoundError, ValidationError
 from app.domain.entities.bot_user import BotUser
 from app.domain.entities.order import Order
@@ -9,11 +11,18 @@ from app.domain.repositories.course_repository import CourseRepository
 from app.domain.repositories.order_repository import OrderRepository
 from app.domain.repositories.payment_gateway import PaymentGateway
 from app.domain.repositories.payment_settings_repository import PaymentSettingsRepository
+from app.infrastructure.payments.lava_helpers import lava_offer_id, payment_email
 
 _RESULT_TO_STATUS: dict[str, OrderStatus] = {
     "succeeded": OrderStatus.PAID,
     "failed": OrderStatus.FAILED,
     "cancelled": OrderStatus.CANCELLED,
+}
+
+_LAVA_EVENT_TO_RESULT: dict[str, str] = {
+    "payment.success": "succeeded",
+    "payment.failed": "failed",
+    "payment.cancelled": "cancelled",
 }
 
 
@@ -53,12 +62,23 @@ class OrderService:
                 username=username,
                 full_name=full_name,
                 preferred_language=existing_user.preferred_language if existing_user else "uk",
+                extra=existing_user.extra if existing_user else {},
             )
         )
         course = await self._courses.get_active(course_id)
         if course is None:
             raise NotFoundError("Course not found")
         assert user.id is not None
+        settings = await self._settings()
+        offer_id: str | None = None
+        buyer_email: str | None = None
+        if settings.provider == "lava":
+            offer_id = lava_offer_id(course.extra)
+            if offer_id is None:
+                raise ValidationError("Course is not configured for lava payments")
+            buyer_email = payment_email(user.extra)
+            if buyer_email is None:
+                raise ValidationError("Buyer email is required for lava payments")
         order = await self._orders.add(
             Order(
                 id=None,
@@ -68,10 +88,26 @@ class OrderService:
                 status=OrderStatus.PENDING,
             )
         )
-        intent = await self._gateway.create_payment(order, await self._settings())
+        intent = await self._gateway.create_payment(
+            order,
+            settings,
+            lava_offer_id_value=offer_id,
+            buyer_email=buyer_email,
+        )
         order.payment_reference = intent.payment_reference
+        if intent.pay_url:
+            order.extra = {**order.extra, "pay_url": intent.pay_url}
         order = await self._orders.update(order)
         return order, intent
+
+    async def get_checkout_pay_url(self, order_id: int) -> str:
+        order = await self.get_order(order_id)
+        if order.status.is_terminal:
+            raise ValidationError("Order is already finalized")
+        pay_url = order.extra.get("pay_url")
+        if not isinstance(pay_url, str) or not pay_url.strip():
+            raise NotFoundError("Payment link not found")
+        return pay_url.strip()
 
     async def get_order(self, order_id: int) -> Order:
         order = await self._orders.get(order_id)
@@ -88,7 +124,33 @@ class OrderService:
     async def verify_webhook(self, payload: bytes, signature: str) -> bool:
         return self._gateway.verify_signature(payload, signature, await self._settings())
 
-    async def confirm_payment(self, payment_reference: str, result: str) -> Order:
+    async def verify_lava_webhook(self, api_key: str) -> bool:
+        settings = await self._settings()
+        secret = settings.secret_key or ""
+        if not secret or not api_key:
+            return False
+        return hmac.compare_digest(api_key, secret)
+
+    async def confirm_lava_webhook(
+        self, payment_reference: str, event_type: str
+    ) -> tuple[Order, bool]:
+        result = _LAVA_EVENT_TO_RESULT.get(event_type)
+        if result is None:
+            raise ValidationError("Unknown lava event type")
+        return await self.confirm_payment(payment_reference, result)
+
+    async def uses_lava_provider(self) -> bool:
+        settings = await self._settings()
+        return settings.provider == "lava"
+
+    async def payment_currency(self) -> str:
+        return (await self._settings()).currency
+
+    async def payment_link_mode(self) -> str:
+        mode = str((await self._settings()).extra.get("checkout_mode", "direct"))
+        return mode if mode in ("direct", "checkout") else "direct"
+
+    async def confirm_payment(self, payment_reference: str, result: str) -> tuple[Order, bool]:
         status = _RESULT_TO_STATUS.get(result)
         if status is None:
             raise ValidationError("Unknown payment result")
@@ -96,6 +158,6 @@ class OrderService:
         if order is None:
             raise NotFoundError("Order not found")
         if order.status.is_terminal:
-            return order
+            return order, False
         order.status = status
-        return await self._orders.update(order)
+        return await self._orders.update(order), True

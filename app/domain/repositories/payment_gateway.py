@@ -7,7 +7,14 @@ from app.domain.entities.payment_settings import PaymentSettings
 
 class PaymentGateway(ABC):
     @abstractmethod
-    async def create_payment(self, order: Order, settings: PaymentSettings) -> PaymentIntent: ...
+    async def create_payment(
+        self,
+        order: Order,
+        settings: PaymentSettings,
+        *,
+        lava_offer_id_value: str | None = None,
+        buyer_email: str | None = None,
+    ) -> PaymentIntent: ...
 
     @abstractmethod
     def verify_signature(

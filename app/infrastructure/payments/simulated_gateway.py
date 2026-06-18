@@ -14,7 +14,14 @@ class SimulatedPaymentGateway(PaymentGateway):
     def __init__(self, backend_url: str) -> None:
         self._backend_url = backend_url.rstrip("/")
 
-    async def create_payment(self, order: Order, settings: PaymentSettings) -> PaymentIntent:
+    async def create_payment(
+        self,
+        order: Order,
+        settings: PaymentSettings,
+        *,
+        lava_offer_id_value: str | None = None,
+        buyer_email: str | None = None,
+    ) -> PaymentIntent:
         reference = f"sim_{uuid.uuid4().hex}"
         pay_url = (
             f"{self._backend_url}/api/payments/simulate?reference={reference}&result=succeeded"

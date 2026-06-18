@@ -19,7 +19,7 @@ from app.core.config import get_settings
 from app.core.database import Database
 from app.core.logging import setup_logging
 from app.infrastructure.db.init_db import create_schema
-from app.infrastructure.payments.simulated_gateway import SimulatedPaymentGateway
+from app.infrastructure.payments.gateway_factory import build_payment_gateway
 from app.infrastructure.ratelimit.in_memory_rate_limiter import InMemoryRateLimiter
 
 _STATUS_MAP: dict[type[ApplicationError], int] = {
@@ -67,7 +67,7 @@ def create_app() -> FastAPI:
     app.state.rate_limiter = InMemoryRateLimiter(
         settings.search_rate_limit, settings.search_rate_window_seconds
     )
-    app.state.payment_gateway = SimulatedPaymentGateway(settings.backend_url)
+    app.state.payment_gateway = build_payment_gateway(settings.backend_url)
 
     app.include_router(health.router)
     app.include_router(catalog.router)

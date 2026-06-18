@@ -41,6 +41,37 @@ def courses_keyboard(
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
+def payment_email_confirm_keyboard(
+    course_id: int, language_code: str = DEFAULT_LANGUAGE
+) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text=message(language_code, "payment_email_use"),
+                    callback_data=f"order:email:use:{course_id}",
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    text=message(language_code, "payment_email_change"),
+                    callback_data=f"order:email:change:{course_id}",
+                )
+            ],
+        ]
+    )
+
+
+def payment_url_keyboard(
+    pay_url: str, language_code: str = DEFAULT_LANGUAGE
+) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text=message(language_code, "pay_button"), url=pay_url)]
+        ]
+    )
+
+
 def course_detail_keyboard(
     course_id: int, language_code: str = DEFAULT_LANGUAGE
 ) -> InlineKeyboardMarkup:
