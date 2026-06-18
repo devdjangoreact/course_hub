@@ -87,10 +87,13 @@ class BotUserAdmin(ModelView, model=BotUserModel):
 class AdminUserAdmin(ModelView, model=AdminUserModel):
     category = "Settings"
     column_list = [AdminUserModel.id, AdminUserModel.username, AdminUserModel.is_active]
-    form_columns = [AdminUserModel.username, AdminUserModel.is_active]
+    form_columns = [AdminUserModel.username, "password", AdminUserModel.is_active]
     form_extra_fields = {"password": PasswordField("Password")}
-    form_create_rules = ("username", "password", "is_active")
-    form_edit_rules = ("username", "password", "is_active")
+    form_args = {
+        "password": {
+            "description": "Required for new users. Leave empty when editing to keep the current password.",
+        },
+    }
     name = "Admin User"
     name_plural = "Admin Users"
     icon = "fa-solid fa-user-shield"
