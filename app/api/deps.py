@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.application.services.catalog_service import CatalogService
 from app.application.services.order_service import OrderService
 from app.application.services.parser_service import ParserService
+from app.application.services.runtime_settings import RuntimeSettings, load_runtime_settings
 from app.application.services.search_service import SearchService
 from app.container import (
     build_catalog_service,
@@ -46,8 +47,16 @@ async def get_session(
             raise
 
 
+async def get_runtime_settings(
+    request: Request,
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> RuntimeSettings:
+    return await load_runtime_settings(session, get_settings())
+
+
 SessionDep = Annotated[AsyncSession, Depends(get_session)]
 SettingsDep = Annotated[Settings, Depends(get_settings)]
+RuntimeSettingsDep = Annotated[RuntimeSettings, Depends(get_runtime_settings)]
 
 
 def get_catalog_service(session: SessionDep) -> CatalogService:
@@ -60,10 +69,10 @@ def get_language_repository(session: SessionDep) -> LanguageRepository:
 
 def get_search_service(
     session: SessionDep,
-    settings: SettingsDep,
+    runtime: RuntimeSettingsDep,
     rate_limiter: Annotated[RateLimiter, Depends(get_rate_limiter)],
 ) -> SearchService:
-    return build_search_service(session, settings, rate_limiter)
+    return build_search_service(session, runtime, rate_limiter)
 
 
 def get_order_service(

@@ -1,4 +1,4 @@
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domain.entities.admin_user import AdminUser
@@ -35,3 +35,7 @@ class SqlAdminUserRepository(AdminUserRepository):
         self._session.add(model)
         await self._session.flush()
         return _to_entity(model)
+
+    async def count(self) -> int:
+        stmt = select(func.count()).select_from(AdminUserModel)
+        return int((await self._session.execute(stmt)).scalar_one())

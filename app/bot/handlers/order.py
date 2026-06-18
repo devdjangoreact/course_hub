@@ -11,7 +11,7 @@ from app.application.services.order_service import OrderService
 from app.bot.keyboards.catalog import payment_email_confirm_keyboard, payment_url_keyboard
 from app.bot.messages.catalog import message as bot_message
 from app.bot.states import OrderStates
-from app.core.config import Settings
+from app.application.services.runtime_settings import RuntimeSettings
 from app.domain.entities.bot_user import BotUser
 from app.domain.entities.payment_intent import PaymentIntent
 from app.domain.repositories.bot_user_repository import BotUserRepository
@@ -62,7 +62,7 @@ async def _create_order_for_user(
 
 
 async def _pay_button_url(
-    settings: Settings,
+    runtime: RuntimeSettings,
     orders: OrderService,
     order_id: int,
     intent: PaymentIntent,
@@ -70,7 +70,7 @@ async def _pay_button_url(
     if not intent.pay_url:
         return None
     if await orders.payment_link_mode() == "checkout":
-        return f"{settings.backend_url.rstrip('/')}/api/orders/{order_id}/checkout"
+        return f"{runtime.backend_url.rstrip('/')}/api/orders/{order_id}/checkout"
     return intent.pay_url
 
 
@@ -78,7 +78,7 @@ async def _send_payment_summary(
     target: Message,
     *,
     language: str,
-    settings: Settings,
+    runtime: RuntimeSettings,
     catalog: CatalogService,
     orders: OrderService,
     course_id: int,
@@ -97,7 +97,7 @@ async def _send_payment_summary(
         amount=amount,
         currency=currency,
     )
-    pay_url = await _pay_button_url(settings, orders, order_id, intent)
+    pay_url = await _pay_button_url(runtime, orders, order_id, intent)
     markup = payment_url_keyboard(pay_url, language) if pay_url else None
     await target.answer(text, reply_markup=markup, link_preview_options=_NO_LINK_PREVIEW)
 
@@ -129,7 +129,7 @@ async def _finalize_order(
     target: Message,
     *,
     language: str,
-    settings: Settings,
+    runtime: RuntimeSettings,
     catalog: CatalogService,
     orders: OrderService,
     from_user: User,
@@ -148,7 +148,7 @@ async def _finalize_order(
     await _send_payment_summary(
         target,
         language=language,
-        settings=settings,
+        runtime=runtime,
         catalog=catalog,
         orders=orders,
         course_id=course_id,
@@ -164,7 +164,7 @@ async def create_order(
     state: FSMContext,
     orders: OrderService,
     catalog: CatalogService,
-    settings: Settings,
+    runtime: RuntimeSettings,
     bot_users: BotUserRepository,
     localization: LocalizationService,
 ) -> None:
@@ -202,7 +202,7 @@ async def create_order(
     await _send_payment_summary(
         callback.message,
         language=language,
-        settings=settings,
+        runtime=runtime,
         catalog=catalog,
         orders=orders,
         course_id=course_id,
@@ -218,7 +218,7 @@ async def use_saved_payment_email(
     callback: CallbackQuery,
     catalog: CatalogService,
     orders: OrderService,
-    settings: Settings,
+    runtime: RuntimeSettings,
     bot_users: BotUserRepository,
     localization: LocalizationService,
 ) -> None:
@@ -230,7 +230,7 @@ async def use_saved_payment_email(
     await _finalize_order(
         callback.message,
         language=language,
-        settings=settings,
+        runtime=runtime,
         catalog=catalog,
         orders=orders,
         from_user=callback.from_user,
@@ -261,7 +261,7 @@ async def receive_payment_email(
     state: FSMContext,
     orders: OrderService,
     catalog: CatalogService,
-    settings: Settings,
+    runtime: RuntimeSettings,
     bot_users: BotUserRepository,
     localization: LocalizationService,
 ) -> None:
@@ -292,7 +292,7 @@ async def receive_payment_email(
     await _finalize_order(
         message,
         language=language,
-        settings=settings,
+        runtime=runtime,
         catalog=catalog,
         orders=orders,
         from_user=message.from_user,

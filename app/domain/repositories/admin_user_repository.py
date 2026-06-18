@@ -9,3 +9,6 @@ class AdminUserRepository(ABC):
 
     @abstractmethod
     async def add(self, admin: AdminUser) -> AdminUser: ...
+
+    @abstractmethod
+    async def count(self) -> int: ...

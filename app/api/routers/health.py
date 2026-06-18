@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.deps import SettingsDep
+from app.api.deps import RuntimeSettingsDep
 
 router = APIRouter(tags=["health"])
 
@@ -11,5 +11,5 @@ async def root() -> dict[str, str]:
 
 
 @router.get("/health")
-async def health(settings: SettingsDep) -> dict[str, str]:
-    return {"status": "ok", "env": settings.app_env.value}
+async def health(runtime: RuntimeSettingsDep) -> dict[str, str]:
+    return {"status": "ok", "env": runtime.app_env}

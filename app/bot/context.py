@@ -11,6 +11,6 @@ class BotRuntime:
     """Shared dependencies handed to bot handlers via middleware."""
 
     database: Database
-    settings: Settings
+    env_settings: Settings
     rate_limiter: RateLimiter
     payment_gateway: PaymentGateway

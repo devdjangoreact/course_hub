@@ -12,6 +12,9 @@ def _to_entity(model: BotSettingsModel) -> BotSettings:
         id=model.id,
         bot_token=model.bot_token,
         backend_url=model.backend_url,
+        app_env=model.app_env,
+        admin_session_secret=model.admin_session_secret,
+        log_level=model.log_level,
         is_active=model.is_active,
         extra=dict(model.extra),
     )
@@ -32,6 +35,9 @@ class SqlBotSettingsRepository(BotSettingsRepository):
             self._session.add(model)
         model.bot_token = settings.bot_token
         model.backend_url = settings.backend_url
+        model.app_env = settings.app_env
+        model.admin_session_secret = settings.admin_session_secret
+        model.log_level = settings.log_level
         model.is_active = settings.is_active
         model.extra = settings.extra
         await self._session.flush()

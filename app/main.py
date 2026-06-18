@@ -3,6 +3,8 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
+from starlette.middleware.sessions import SessionMiddleware
+from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 
 from app.admin.setup import setup_admin
 from app.api.routers import catalog, health, orders, parser
@@ -12,6 +14,7 @@ from app.application.errors import (
     RateLimitedError,
     ValidationError,
 )
+from app.application.services.runtime_settings import load_runtime_settings
 from app.bootstrap import ensure_initial_data
 from app.bot.context import BotRuntime
 from app.bot.runner import BotApp
@@ -40,10 +43,19 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     database: Database = app.state.db
     await create_schema(database, settings)
     await ensure_initial_data(database, settings)
+
+    async with database.session_factory() as session:
+        runtime = await load_runtime_settings(session, settings)
+    app.state.runtime_settings = runtime
+    app.state.payment_gateway = build_payment_gateway(runtime.backend_url)
+    app.state.rate_limiter = InMemoryRateLimiter(
+        runtime.search_rate_limit, runtime.search_rate_window_seconds
+    )
+
     bot_app = BotApp(
         BotRuntime(
             database=database,
-            settings=settings,
+            env_settings=settings,
             rate_limiter=app.state.rate_limiter,
             payment_gateway=app.state.payment_gateway,
         )
@@ -62,6 +74,8 @@ def create_app() -> FastAPI:
     setup_logging(settings.log_level)
 
     app = FastAPI(title="Course Hub", lifespan=lifespan)
+    app.add_middleware(ProxyHeadersMiddleware, trusted_hosts="*")
+    app.add_middleware(SessionMiddleware, secret_key=settings.admin_session_secret)
     app.state.settings = settings
     app.state.db = Database(settings)
     app.state.rate_limiter = InMemoryRateLimiter(
@@ -76,7 +90,8 @@ def create_app() -> FastAPI:
 
     app.add_exception_handler(ApplicationError, _application_error_handler)
 
-    setup_admin(app, app.state.db, settings)
+    setup_admin(app, app.state.db, settings.admin_session_secret)
+    app.state.admin_ready = True
     return app
 
 

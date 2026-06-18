@@ -5,7 +5,7 @@ from app.application.services.localization_service import LocalizationService
 from app.application.services.order_service import OrderService
 from app.application.services.parser_service import ParserService
 from app.application.services.search_service import SearchService
-from app.core.config import Settings
+from app.application.services.runtime_settings import RuntimeSettings
 from app.domain.repositories.language_repository import LanguageRepository
 from app.domain.repositories.payment_gateway import PaymentGateway
 from app.domain.repositories.rate_limiter import RateLimiter
@@ -48,15 +48,17 @@ def build_localization_service(session: AsyncSession) -> LocalizationService:
 
 
 def build_search_service(
-    session: AsyncSession, settings: Settings, rate_limiter: RateLimiter
+    session: AsyncSession, runtime: RuntimeSettings, rate_limiter: RateLimiter
 ) -> SearchService:
-    search = Fts5SearchRepository(session) if settings.is_sqlite else LikeSearchRepository(session)
+    search = (
+        Fts5SearchRepository(session) if runtime.is_sqlite else LikeSearchRepository(session)
+    )
     return SearchService(
         search,
         rate_limiter,
         LocalizedSuggestionSearchRepository(session),
-        settings.search_suggestion_min_chars,
-        settings.search_suggestion_limit,
+        runtime.search_suggestion_min_chars,
+        runtime.search_suggestion_limit,
     )
 
 

@@ -34,6 +34,9 @@ async def test_settings_persist(app: FastAPI) -> None:
                 id=1,
                 bot_token="updated-token",
                 backend_url="https://example.com",
+                app_env="production",
+                admin_session_secret="session-secret",
+                log_level="DEBUG",
             )
         )
         await payment_repo.save(

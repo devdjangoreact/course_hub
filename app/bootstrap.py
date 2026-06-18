@@ -19,13 +19,37 @@ _LANGUAGE_NAMES = {
     "en": ("English", "English"),
 }
 
+_DEFAULT_ADMIN_USERNAME = "admin"
+_DEFAULT_ADMIN_PASSWORD = "admin"
+
 
 def _parse_languages(value: str) -> list[str]:
     return [item.strip().lower() for item in value.split(",") if item.strip()]
 
 
+async def _ensure_default_admin(session, settings: Settings) -> None:
+    admins = SqlAdminUserRepository(session)
+    if await admins.count() > 0:
+        return
+    username = settings.admin_username.strip() or _DEFAULT_ADMIN_USERNAME
+    password = settings.admin_password
+    if not password or password == "change-me":
+        password = _DEFAULT_ADMIN_PASSWORD
+    await admins.add(
+        AdminUser(
+            id=None,
+            username=username,
+            password_hash=hash_password(password),
+        )
+    )
+    logger.warning(
+        "Created default admin user '{}'. Change the password in the admin panel.",
+        username,
+    )
+
+
 async def ensure_initial_data(database: Database, settings: Settings) -> None:
-    """Seed the first admin account and settings rows from env (idempotent)."""
+    """Seed languages, default admin, and settings rows from env (idempotent)."""
     async with database.session_factory() as session:
         languages = _parse_languages(settings.supported_languages)
         for code in languages:
@@ -53,16 +77,7 @@ async def ensure_initial_data(database: Database, settings: Settings) -> None:
             for model in (await session.execute(stmt)).scalars().all():
                 model.is_active = False
 
-        admins = SqlAdminUserRepository(session)
-        if await admins.get_by_username(settings.admin_username) is None:
-            await admins.add(
-                AdminUser(
-                    id=None,
-                    username=settings.admin_username,
-                    password_hash=hash_password(settings.admin_password),
-                )
-            )
-            logger.info("Seeded initial admin user '{}'.", settings.admin_username)
+        await _ensure_default_admin(session, settings)
 
         bot_settings = SqlBotSettingsRepository(session)
         if await bot_settings.get() is None:
@@ -71,6 +86,18 @@ async def ensure_initial_data(database: Database, settings: Settings) -> None:
                     id=None,
                     bot_token=settings.bot_token,
                     backend_url=settings.backend_url,
+                    app_env=settings.app_env.value,
+                    admin_session_secret=settings.admin_session_secret,
+                    log_level=settings.log_level,
+                    extra={
+                        "supported_languages": settings.supported_languages,
+                        "default_language": settings.default_language,
+                        "search_rate_limit": settings.search_rate_limit,
+                        "search_rate_window_seconds": settings.search_rate_window_seconds,
+                        "search_suggestion_min_chars": settings.search_suggestion_min_chars,
+                        "search_suggestion_limit": settings.search_suggestion_limit,
+                        "parser_request_timeout_seconds": settings.parser_request_timeout_seconds,
+                    },
                 )
             )
 

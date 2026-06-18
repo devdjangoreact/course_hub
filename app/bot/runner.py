@@ -41,7 +41,7 @@ class BotApp:
             stored = await SqlBotSettingsRepository(session).get()
         if stored is not None and stored.bot_token:
             return stored.bot_token
-        return self._runtime.settings.bot_token
+        return self._runtime.env_settings.bot_token
 
     async def start(self) -> None:
         token = await self._resolve_token()

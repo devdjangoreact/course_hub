@@ -5,6 +5,7 @@ from aiogram import BaseMiddleware
 from aiogram.types import TelegramObject
 
 from app.bot.context import BotRuntime
+from app.application.services.runtime_settings import load_runtime_settings
 from app.container import (
     build_catalog_service,
     build_localization_service,
@@ -28,12 +29,13 @@ class ServicesMiddleware(BaseMiddleware):
     ) -> Any:
         runtime = self._runtime
         async with runtime.database.session_factory() as session:
+            runtime_settings = await load_runtime_settings(session, runtime.env_settings)
             data["catalog"] = build_catalog_service(session)
             data["localization"] = build_localization_service(session)
-            data["search"] = build_search_service(session, runtime.settings, runtime.rate_limiter)
+            data["search"] = build_search_service(session, runtime_settings, runtime.rate_limiter)
             data["orders"] = build_order_service(session, runtime.payment_gateway)
             data["bot_users"] = SqlBotUserRepository(session)
-            data["settings"] = runtime.settings
+            data["runtime"] = runtime_settings
             try:
                 result = await handler(event, data)
                 await session.commit()

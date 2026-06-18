@@ -1,5 +1,5 @@
 from sqladmin import ModelView
-from wtforms import SelectField
+from wtforms import PasswordField, SelectField
 
 from app.infrastructure.db.models.admin_user import AdminUserModel
 from app.infrastructure.db.models.bot_settings import BotSettingsModel
@@ -13,6 +13,7 @@ from app.infrastructure.db.models.order import OrderModel
 from app.infrastructure.db.models.parser_job import ParserJobModel
 from app.infrastructure.db.models.parser_source import ParserSourceModel
 from app.infrastructure.db.models.payment_settings import PaymentSettingsModel
+from app.infrastructure.security.password import hash_password
 
 
 class CategoryAdmin(ModelView, model=CategoryModel):
@@ -84,20 +85,105 @@ class BotUserAdmin(ModelView, model=BotUserModel):
 
 
 class AdminUserAdmin(ModelView, model=AdminUserModel):
+    category = "Settings"
     column_list = [AdminUserModel.id, AdminUserModel.username, AdminUserModel.is_active]
-    can_create = False
-    can_edit = False
-    can_delete = False
+    column_exclude_list = [AdminUserModel.password_hash]
+    form_columns = [AdminUserModel.username, AdminUserModel.is_active]
+    form_extra_fields = {"password": PasswordField("Password")}
+    form_create_rules = ("username", "password", "is_active")
+    form_edit_rules = ("username", "password", "is_active")
     name = "Admin User"
+    name_plural = "Admin Users"
     icon = "fa-solid fa-user-shield"
 
+    async def on_model_change(self, data: dict, model: AdminUserModel, is_created: bool, request) -> None:  # noqa: ANN001
+        password = data.pop("password", None)
+        if password:
+            model.password_hash = hash_password(str(password))
+        elif is_created:
+            model.password_hash = hash_password("admin")
 
-class BotSettingsAdmin(ModelView, model=BotSettingsModel):
+
+class AppSettingsAdmin(ModelView, model=BotSettingsModel):
     category = "Settings"
-    column_list = [BotSettingsModel.id, BotSettingsModel.backend_url, BotSettingsModel.is_active]
+    column_list = [
+        BotSettingsModel.app_env,
+        BotSettingsModel.backend_url,
+        BotSettingsModel.log_level,
+        BotSettingsModel.is_active,
+        BotSettingsModel.updated_at,
+    ]
+    column_details_list = [
+        BotSettingsModel.id,
+        BotSettingsModel.app_env,
+        BotSettingsModel.backend_url,
+        BotSettingsModel.bot_token,
+        BotSettingsModel.admin_session_secret,
+        BotSettingsModel.log_level,
+        BotSettingsModel.extra,
+        BotSettingsModel.is_active,
+        BotSettingsModel.updated_at,
+    ]
+    column_formatters = {
+        BotSettingsModel.bot_token: lambda model, _: _mask_secret(model, "bot_token", model.bot_token),
+        BotSettingsModel.admin_session_secret: lambda model, _: _mask_secret(
+            model, "admin_session_secret", model.admin_session_secret
+        ),
+    }
+    column_labels = {
+        BotSettingsModel.app_env: "Environment",
+        BotSettingsModel.backend_url: "Backend URL",
+        BotSettingsModel.bot_token: "Telegram bot token",
+        BotSettingsModel.admin_session_secret: "Admin session secret",
+        BotSettingsModel.log_level: "Log level",
+        BotSettingsModel.extra: "Extra (languages, search, parser)",
+    }
+    form_columns = [
+        BotSettingsModel.app_env,
+        BotSettingsModel.backend_url,
+        BotSettingsModel.bot_token,
+        BotSettingsModel.admin_session_secret,
+        BotSettingsModel.log_level,
+        BotSettingsModel.extra,
+        BotSettingsModel.is_active,
+    ]
+    form_overrides = {
+        "app_env": SelectField,
+        "log_level": SelectField,
+    }
+    form_args = {
+        "app_env": {
+            "choices": [("development", "Development"), ("production", "Production")],
+            "description": "Runtime environment label (shown on /health).",
+        },
+        "backend_url": {
+            "description": "Public base URL for checkout pages and payment webhooks.",
+        },
+        "bot_token": {
+            "description": "Telegram bot token. Restart the app after changing.",
+        },
+        "admin_session_secret": {
+            "description": "Signs admin login cookies. Restart required after change.",
+        },
+        "log_level": {
+            "choices": [
+                ("DEBUG", "DEBUG"),
+                ("INFO", "INFO"),
+                ("WARNING", "WARNING"),
+                ("ERROR", "ERROR"),
+            ],
+        },
+        "extra": {
+            "description": (
+                'JSON options, e.g. {"supported_languages": "uk,en", "default_language": "uk", '
+                '"search_rate_limit": 5, "search_suggestion_limit": 5}.'
+            ),
+        },
+    }
+    can_create = False
     can_delete = False
-    name = "Bot Settings"
-    name_plural = "Bot Settings"
+    name = "App Settings"
+    name_plural = "App Settings"
     icon = "fa-solid fa-gear"
 
 
@@ -226,7 +312,7 @@ ALL_VIEWS = [
     OrderAdmin,
     BotUserAdmin,
     AdminUserAdmin,
-    BotSettingsAdmin,
+    AppSettingsAdmin,
     PaymentSettingsAdmin,
     ParserSourceAdmin,
     ParserJobAdmin,

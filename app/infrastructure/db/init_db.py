@@ -10,6 +10,11 @@ _SQLITE_COLUMN_PATCHES: dict[str, dict[str, str]] = {
     "bot_users": {
         "preferred_language": "VARCHAR NOT NULL DEFAULT 'uk'",
     },
+    "bot_settings": {
+        "app_env": "VARCHAR NOT NULL DEFAULT 'development'",
+        "admin_session_secret": "VARCHAR NOT NULL DEFAULT ''",
+        "log_level": "VARCHAR NOT NULL DEFAULT 'INFO'",
+    },
 }
 
 
