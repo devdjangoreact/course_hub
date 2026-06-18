@@ -87,7 +87,6 @@ class BotUserAdmin(ModelView, model=BotUserModel):
 class AdminUserAdmin(ModelView, model=AdminUserModel):
     category = "Settings"
     column_list = [AdminUserModel.id, AdminUserModel.username, AdminUserModel.is_active]
-    column_exclude_list = [AdminUserModel.password_hash]
     form_columns = [AdminUserModel.username, AdminUserModel.is_active]
     form_extra_fields = {"password": PasswordField("Password")}
     form_create_rules = ("username", "password", "is_active")
