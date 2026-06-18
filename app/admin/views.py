@@ -87,10 +87,13 @@ class BotUserAdmin(ModelView, model=BotUserModel):
 class AdminUserAdmin(ModelView, model=AdminUserModel):
     category = "Settings"
     column_list = [AdminUserModel.id, AdminUserModel.username, AdminUserModel.is_active]
-    form_columns = [AdminUserModel.username, "password", AdminUserModel.is_active]
-    form_extra_fields = {"password": PasswordField("Password")}
+    form_columns = [AdminUserModel.username, AdminUserModel.password_hash, AdminUserModel.is_active]
+    form_overrides = {"password_hash": PasswordField}
+    column_labels = {
+        AdminUserModel.password_hash: "Password",
+    }
     form_args = {
-        "password": {
+        "password_hash": {
             "description": "Required for new users. Leave empty when editing to keep the current password.",
         },
     }
@@ -99,9 +102,9 @@ class AdminUserAdmin(ModelView, model=AdminUserModel):
     icon = "fa-solid fa-user-shield"
 
     async def on_model_change(self, data: dict, model: AdminUserModel, is_created: bool, request) -> None:  # noqa: ANN001
-        password = data.pop("password", None)
-        if password:
-            model.password_hash = hash_password(str(password))
+        raw_password = data.pop("password_hash", None)
+        if raw_password:
+            model.password_hash = hash_password(str(raw_password))
         elif is_created:
             model.password_hash = hash_password("admin")
 
