@@ -143,6 +143,10 @@ class OrderService:
         settings = await self._settings()
         return settings.provider == "lava"
 
+    async def uses_atlos_provider(self) -> bool:
+        settings = await self._settings()
+        return settings.provider == "atlos"
+
     async def payment_currency(self) -> str:
         return (await self._settings()).currency
 

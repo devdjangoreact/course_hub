@@ -43,6 +43,8 @@ async def _category_name(
 async def _payment_service_label(orders: OrderService, language: str) -> str:
     if await orders.uses_lava_provider():
         return bot_message(language, "payment_provider_lava")
+    if await orders.uses_atlos_provider():
+        return bot_message(language, "payment_provider_atlos")
     return bot_message(language, "payment_provider_simulated")
 
 

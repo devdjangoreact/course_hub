@@ -37,6 +37,7 @@ _MESSAGES: dict[str, dict[str, str]] = {
             "Натисніть «Оплатити» нижче."
         ),
         "payment_provider_lava": "lava.top",
+        "payment_provider_atlos": "atlos.io",
         "payment_provider_simulated": "Тестова оплата",
         "pay_button": "Оплатити",
     },
@@ -76,6 +77,7 @@ _MESSAGES: dict[str, dict[str, str]] = {
             "Tap «Pay» below."
         ),
         "payment_provider_lava": "lava.top",
+        "payment_provider_atlos": "atlos.io",
         "payment_provider_simulated": "Simulated payment",
         "pay_button": "Pay",
     },

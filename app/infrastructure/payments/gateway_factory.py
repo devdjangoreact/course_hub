@@ -4,14 +4,16 @@ from app.domain.entities.payment_settings import PaymentSettings
 from app.domain.repositories.payment_gateway import PaymentGateway
 from app.infrastructure.payments.lava_gateway import LavaPaymentGateway
 from app.infrastructure.payments.simulated_gateway import SimulatedPaymentGateway
+from app.infrastructure.payments.atlos_gateway import AtlosPaymentGateway
 
 
 class RoutingPaymentGateway(PaymentGateway):
-    """Delegates to simulated or lava based on persisted payment settings."""
+    """Delegates to simulated, lava or atlos based on persisted payment settings."""
 
     def __init__(self, backend_url: str) -> None:
         self._simulated = SimulatedPaymentGateway(backend_url)
         self._lava = LavaPaymentGateway()
+        self._atlos = AtlosPaymentGateway()
 
     async def create_payment(
         self,
@@ -23,6 +25,13 @@ class RoutingPaymentGateway(PaymentGateway):
     ) -> PaymentIntent:
         if settings.provider == "lava":
             return await self._lava.create_payment(
+                order,
+                settings,
+                lava_offer_id_value=lava_offer_id_value,
+                buyer_email=buyer_email,
+            )
+        elif settings.provider == "atlos":
+            return await self._atlos.create_payment(
                 order,
                 settings,
                 lava_offer_id_value=lava_offer_id_value,

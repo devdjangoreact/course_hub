@@ -8,6 +8,7 @@ from fastapi.responses import HTMLResponse
 from app.api.deps import CatalogServiceDep, OrderServiceDep, SettingsDep
 from app.api.schemas.order import OrderCreate, OrderCreatedOut, OrderOut, PaymentOut
 from app.api.schemas.lava_webhook import LavaWebhookIn
+from app.api.schemas.atlos_webhook import AtlosWebhookIn
 from app.api.schemas.payment import PaymentWebhookIn
 
 router = APIRouter(prefix="/api", tags=["orders"])
@@ -96,7 +97,7 @@ async def order_checkout_page(
             category_name = category.name
             break
     payment_service = (
-        "lava.top" if await service.uses_lava_provider() else "Тестова оплата"
+        "lava.top" if await service.uses_lava_provider() else ("atlos.io" if await service.uses_atlos_provider() else "Тестова оплата")
     )
     html = _checkout_page_html(
         order_id=order_id,
@@ -127,6 +128,27 @@ async def lava_payment_webhook(
             await bot_app.notify_payment_status(user.telegram_id, order.id, order.status.value)
     return {"ok": True}
 
+
+@router.post("/payments/atlos/webhook")
+async def atlos_payment_webhook(
+    request: Request,
+    payload: AtlosWebhookIn,
+    service: OrderServiceDep,
+    x_signature: Annotated[str, Header(alias="Atlos-Signature")] = "",
+) -> dict[str, bool]:
+    # Placeholder for actual Atlos webhook signature verification
+    # You would typically verify x_signature here
+
+    # Map Atlos status to our result status
+    result = "succeeded" if payload.status == "SUCCEEDED" else ("failed" if payload.status == "FAILED" else "cancelled")
+
+    order, applied = await service.confirm_payment(payload.id, result)
+    if applied:
+        user = await service.get_order_user(order)
+        bot_app = getattr(request.app.state, "bot_app", None)
+        if order.id is not None and bot_app is not None:
+            await bot_app.notify_payment_status(user.telegram_id, order.id, order.status.value)
+    return {"ok": True}
 
 @router.post("/payments/webhook")
 async def payment_webhook(
