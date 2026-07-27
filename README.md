@@ -127,33 +127,50 @@ multilingual catalog/search, parser jobs, and the rate limiter.
 Admins can configure parser sources and start parser jobs from admin/API flows. Parsed items are saved
 as draft/imported review records and are not visible in the bot until approved and activated.
 
-## Deploy to Vercel
+## Deploy to Vercel (CI/CD)
 
-Prerequisites: GitHub repo connected to Vercel (or CLI login), Supabase Free Postgres URL in `.env`
-(not SQLite), and `TELEGRAM_MODE=webhook`.
+**Flow:** push / merge to `main` → GitHub Actions runs tests → syncs secrets from **`ENV_PROD`**
+(contents of your local `.env.prod`) into Vercel → deploys production.
 
-1. Commit and push this branch (or merge to `main`).
-2. Link the project once:
+Never commit `.env` / `.env.prod`. Keep real values only in:
+- local `.env.prod` (gitignored), and
+- GitHub Actions secret `ENV_PROD` (paste the same file contents).
+
+### One-time setup
+
+1. Create local `.env.prod` from `.env.prod.example` (Supabase Postgres URL, bot token, webhook mode).
+2. Link Vercel once and note IDs:
 
 ```bash
 npx vercel login
 npx vercel link
+# read orgId + projectId from .vercel/project.json
 ```
 
-3. Sync env vars from local `.env` into Vercel (values are not printed):
+3. GitHub → **Settings → Secrets and variables → Actions** → add secrets:
+
+| Secret | Value |
+|--------|--------|
+| `VERCEL_TOKEN` | [vercel.com/account/tokens](https://vercel.com/account/tokens) |
+| `VERCEL_ORG_ID` | `orgId` from `.vercel/project.json` |
+| `VERCEL_PROJECT_ID` | `projectId` from `.vercel/project.json` |
+| `ENV_PROD` | **full text** of your local `.env.prod` |
+
+4. Optional Variable `VERCEL_PRODUCTION_URL` = `https://your-project.vercel.app`  
+   CI overwrites `BACKEND_URL` in the synced env so Telegram webhook always points at prod.
+
+5. Push to `main`. Workflow: `.github/workflows/deploy-vercel.yml`.
+
+### Manual sync (optional)
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts/sync-vercel-env.ps1
+powershell -ExecutionPolicy Bypass -File scripts/sync-vercel-env.ps1 -EnvFile .env.prod
 ```
 
-4. Deploy production:
-
 ```bash
+export VERCEL_TOKEN=...
+./scripts/sync-vercel-env.sh .env.prod production
 npx vercel --prod
 ```
 
-5. Copy the resulting `https://….vercel.app` URL into `.env` as `BACKEND_URL`, re-run the sync script,
-   and redeploy so Telegram `setWebhook` uses the public URL.
-
-Git pushes to the linked production branch then redeploy automatically. Never commit `.env`.
-
+Existing ECR/`infra` pipeline in `.github/workflows/build.yml` is unchanged.

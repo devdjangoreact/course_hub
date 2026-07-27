@@ -1,0 +1,128 @@
+name: CI and Deploy Vercel
+
+# Push to main: test → sync env from GitHub secret ENV_PROD → deploy Vercel production.
+# PR: test only.
+#
+# Required GitHub Secrets (Settings → Secrets and variables → Actions):
+#   VERCEL_TOKEN        — https://vercel.com/account/tokens
+#   VERCEL_ORG_ID       — from .vercel/project.json (orgId) after `npx vercel link`
+#   VERCEL_PROJECT_ID   — from .vercel/project.json (projectId)
+#   ENV_PROD            — full contents of local .env.prod (never commit that file)
+#
+# Optional repo Variable:
+#   VERCEL_PRODUCTION_URL — e.g. https://course-hub.vercel.app
+#     If set, workflow ensures BACKEND_URL in the synced env matches this URL.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vercel-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Poetry
+        run: pip install "poetry==1.8.4"
+
+      - name: Install dependencies
+        run: poetry install --no-interaction --no-ansi
+
+      - name: Run tests
+        run: poetry run pytest -q
+
+  deploy:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install Vercel CLI
+        run: npm install -g vercel@latest
+
+      - name: Write .env.prod from secret
+        env:
+          ENV_PROD: ${{ secrets.ENV_PROD }}
+        run: |
+          set -euo pipefail
+          if [ -z "${ENV_PROD}" ]; then
+            echo "Secret ENV_PROD is empty. Paste your .env.prod contents into GitHub Actions secret ENV_PROD." >&2
+            exit 1
+          fi
+          printf '%s\n' "$ENV_PROD" > .env.prod
+          # Never upload .env.prod as a build artifact
+          echo ".env.prod" >> .gitignore
+
+      - name: Ensure production BACKEND_URL
+        env:
+          VERCEL_PRODUCTION_URL: ${{ vars.VERCEL_PRODUCTION_URL }}
+        run: |
+          set -euo pipefail
+          if [ -n "${VERCEL_PRODUCTION_URL:-}" ]; then
+            if grep -q '^BACKEND_URL=' .env.prod; then
+              sed -i "s|^BACKEND_URL=.*|BACKEND_URL=${VERCEL_PRODUCTION_URL}|" .env.prod
+            else
+              printf '\nBACKEND_URL=%s\n' "$VERCEL_PRODUCTION_URL" >> .env.prod
+            fi
+            echo "BACKEND_URL forced to repository variable VERCEL_PRODUCTION_URL"
+          else
+            echo "VERCEL_PRODUCTION_URL variable not set; using BACKEND_URL from ENV_PROD as-is"
+          fi
+
+      - name: Pull Vercel project settings
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          set -euo pipefail
+          vercel pull --yes --environment=production --token "$VERCEL_TOKEN"
+
+      - name: Sync .env.prod → Vercel production env
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          set -euo pipefail
+          chmod +x scripts/sync-vercel-env.sh
+          ./scripts/sync-vercel-env.sh .env.prod production
+
+      - name: Deploy to Vercel (production)
+        id: deploy
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          set -euo pipefail
+          URL=$(vercel deploy --prod --yes --token "$VERCEL_TOKEN")
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+          echo "Deployed: $URL"
+
+      - name: Scrub local env file
+        if: always()
+        run: rm -f .env.prod
