@@ -9,6 +9,11 @@ class AppEnv(StrEnum):
     PRODUCTION = "production"
 
 
+class TelegramMode(StrEnum):
+    WEBHOOK = "webhook"
+    POLLING = "polling"
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -24,6 +29,11 @@ class Settings(BaseSettings):
 
     bot_token: str = ""
     backend_url: str = "http://localhost:8000"
+
+    telegram_mode: TelegramMode = TelegramMode.WEBHOOK
+    telegram_auto_set_webhook: bool = True
+    telegram_webhook_path: str = "/api/telegram/webhook"
+    telegram_webhook_secret: str = ""
 
     admin_username: str = "admin"
     admin_password: str = "change-me"

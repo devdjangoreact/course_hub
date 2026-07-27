@@ -29,6 +29,8 @@ async def app(tmp_path, monkeypatch) -> AsyncIterator[FastAPI]:
     monkeypatch.setenv("APP_ENV", "development")
     monkeypatch.setenv("DATABASE_URL", f"sqlite+aiosqlite:///{db_file}")
     monkeypatch.setenv("BOT_TOKEN", "")
+    monkeypatch.setenv("TELEGRAM_MODE", "webhook")
+    monkeypatch.setenv("TELEGRAM_AUTO_SET_WEBHOOK", "false")
     monkeypatch.setenv("PAYMENT_SECRET_KEY", "testsecret")
     monkeypatch.setenv("PAYMENT_PROVIDER", "simulated")
     monkeypatch.setenv("ADMIN_USERNAME", "admin")
