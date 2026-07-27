@@ -1,3 +1,4 @@
+import os
 from enum import StrEnum
 from functools import lru_cache
 
@@ -63,6 +64,10 @@ class Settings(BaseSettings):
     @property
     def is_sqlite(self) -> bool:
         return self.database_url.startswith("sqlite")
+
+    @property
+    def is_vercel(self) -> bool:
+        return os.environ.get("VERCEL") == "1"
 
 
 @lru_cache

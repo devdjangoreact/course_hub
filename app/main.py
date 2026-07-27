@@ -42,8 +42,9 @@ async def _application_error_handler(_: Request, exc: Exception) -> JSONResponse
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     settings = app.state.settings
     database: Database = app.state.db
-    await create_schema(database, settings)
-    await ensure_initial_data(database, settings)
+    if not settings.is_vercel:
+        await create_schema(database, settings)
+        await ensure_initial_data(database, settings)
 
     async with database.session_factory() as session:
         runtime = await load_runtime_settings(session, settings)
