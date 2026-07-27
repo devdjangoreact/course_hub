@@ -1,5 +1,6 @@
 from collections.abc import AsyncIterator
 import os
+import ssl
 
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
@@ -23,6 +24,14 @@ def _async_database_url(url: str) -> str:
     return url
 
 
+def _supabase_ssl_context() -> ssl.SSLContext:
+    # Pooler presents a chain Vercel's CA store rejects ("self-signed in chain").
+    context = ssl.create_default_context()
+    context.check_hostname = False
+    context.verify_mode = ssl.CERT_NONE
+    return context
+
+
 def create_engine(settings: Settings) -> AsyncEngine:
     url = _async_database_url(settings.database_url)
     connect_args: dict = {}
@@ -30,9 +39,9 @@ def create_engine(settings: Settings) -> AsyncEngine:
     if settings.is_sqlite:
         connect_args["check_same_thread"] = False
     elif "supabase.com" in url:
-        connect_args["ssl"] = True
+        connect_args["ssl"] = _supabase_ssl_context()
         # Transaction pooler (port 6543) + asyncpg: disable prepared statement cache
-        if "pooler.supabase.com" in url or ":6543/" in url or url.rstrip("/").endswith(":6543"):
+        if "pooler.supabase.com" in url or ":6543" in url:
             connect_args["statement_cache_size"] = 0
             connect_args["prepared_statement_cache_size"] = 0
     if os.environ.get("VERCEL") == "1":
