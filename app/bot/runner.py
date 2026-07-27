@@ -3,6 +3,7 @@ import asyncio
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
+from aiogram.exceptions import TelegramAPIError, TelegramRetryAfter
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import Update
 from loguru import logger
@@ -71,15 +72,27 @@ class BotApp:
             if settings.telegram_auto_set_webhook:
                 url = self._webhook_url(await self._resolve_backend_url())
                 secret = settings.telegram_webhook_secret or None
-                await self._bot.set_webhook(url=url, secret_token=secret)
-                logger.info("Telegram webhook set to {}", url)
+                try:
+                    await self._bot.set_webhook(url=url, secret_token=secret)
+                    logger.info("Telegram webhook set to {}", url)
+                except TelegramRetryAfter as exc:
+                    logger.warning(
+                        "Telegram setWebhook rate-limited (retry after {}s); continuing. url={}",
+                        exc.retry_after,
+                        url,
+                    )
+                except TelegramAPIError:
+                    logger.exception("Telegram setWebhook failed; continuing without blocking startup.")
             else:
                 logger.info("Telegram webhook mode (auto-set disabled).")
             return
 
         if settings.telegram_auto_set_webhook:
-            await self._bot.delete_webhook(drop_pending_updates=False)
-            logger.info("Telegram webhook deleted for polling mode.")
+            try:
+                await self._bot.delete_webhook(drop_pending_updates=False)
+                logger.info("Telegram webhook deleted for polling mode.")
+            except TelegramAPIError:
+                logger.exception("Telegram deleteWebhook failed; continuing with polling.")
         self._task = asyncio.create_task(self._dispatcher.start_polling(self._bot))
         logger.info("Telegram bot started (long polling).")
 
