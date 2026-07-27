@@ -32,10 +32,11 @@ Open:
 
 ## Configuration
 
-Use `APP_ENV=development` for development/testing and `APP_ENV=production` for production. Use a
-different Telegram bot token in each profile.
+Core settings are stored in the database and managed via the Admin Panel under **Settings → App Settings**. The `.env` file is primarily used to seed these settings on the first run. 
 
-Multilingual defaults:
+To apply changes, restart the application if modifying the `BOT_TOKEN` or `ADMIN_SESSION_SECRET`. Other settings (like `BACKEND_URL` and `LOG_LEVEL`) apply immediately.
+
+Multilingual defaults (seeded from `.env`):
 
 ```text
 SUPPORTED_LANGUAGES=uk,en
@@ -61,15 +62,36 @@ Switch to PostgreSQL by changing only `DATABASE_URL`:
 DATABASE_URL=postgresql+asyncpg://user:password@db:5432/course_hub
 ```
 
-## Payments (lava.top)
+For Supabase Free (Vercel/serverless), prefer the Transaction pooler URL on port `6543`. TLS is
+enabled automatically when the host contains `supabase.com`.
+
+## Telegram bot modes
+
+Course Hub supports two update transports via env:
+
+- `TELEGRAM_MODE=webhook` (default) — Telegram calls `POST {BACKEND_URL}{TELEGRAM_WEBHOOK_PATH}`.
+- `TELEGRAM_MODE=polling` — long polling inside the app process (local/VPS).
+
+When `TELEGRAM_AUTO_SET_WEBHOOK=true` (default):
+
+- webhook mode calls Telegram `setWebhook` on startup (rebinds after `BACKEND_URL` changes, e.g.
+  Cloudflare Tunnel ↔ Vercel);
+- polling mode calls `deleteWebhook` so an old hook cannot conflict.
+
+Optional `TELEGRAM_WEBHOOK_SECRET` must match Telegram header `X-Telegram-Bot-Api-Secret-Token`.
+
+Local webhook testing: run the API, expose it with Cloudflare Tunnel, set `BACKEND_URL` to the tunnel
+HTTPS URL, restart so auto-set rebinds the bot.
+
+## Payments (atlos.io & lava.top)
 
 Configure payments in the admin panel under **Settings → Payment Settings**
 (`http://localhost:8000/admin`). Changes apply immediately without restart:
 
-- **Provider**: `simulated` (local dev) or `lava`
-- **API key**: lava.top Public API key
-- **Webhook secret**: lava.top Webhook API key (`X-Api-Key`)
-- **Currency**: USD, EUR, or RUB
+- **Provider**: `simulated` (local dev), `lava`, or `atlos`
+- **API key**: atlos.io ApiSecret OR lava.top Public API key
+- **Webhook secret**: atlos.io Webhook Secret (`Signature`) OR lava.top Webhook API key (`X-Api-Key`)
+- **Currency**: USD, EUR, RUB, etc.
 - **Extra**: `{"lava_env": "production", "checkout_mode": "direct"}`
 
 Payment link mode (`checkout_mode` in **Extra** or `PAYMENT_LINK_MODE` in `.env` on first seed):
@@ -78,14 +100,13 @@ Payment link mode (`checkout_mode` in **Extra** or `PAYMENT_LINK_MODE` in `.env`
 - `checkout` — bot opens `{BACKEND_URL}/api/orders/{id}/checkout` (summary page, then pay)
 
 On first run, values are seeded from `.env` (`PAYMENT_PROVIDER`, `PAYMENT_API_KEY`,
-`PAYMENT_SECRET_KEY`, `PAYMENT_CURRENCY`, `LAVA_ENV`, `PAYMENT_LINK_MODE`). Map each course to a lava offer id in
-course `extra` (edit the **Course** record):
+`PAYMENT_SECRET_KEY`, `PAYMENT_CURRENCY`, `PAYMENT_LINK_MODE`). 
 
-```json
-{ "lava_offer_id": "<offer-uuid-from-lava-dashboard>" }
-```
+Map each course to a specific offer if required (e.g. for lava.top, add `{"lava_offer_id": "uuid"}` in course `extra`).
 
-Webhook URL: `{BACKEND_URL}/api/payments/lava/webhook` (event type: **Payment result**).
+**Webhook URLs:**
+- Atlos.io: `{BACKEND_URL}/api/payments/atlos/webhook`
+- Lava.top: `{BACKEND_URL}/api/payments/lava/webhook` (event type: **Payment result**)
 
 Development keeps `PAYMENT_PROVIDER=simulated` for local order/payment testing without external calls.
 
