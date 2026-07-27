@@ -11,7 +11,11 @@ from app.core.config import Settings
 
 
 def create_engine(settings: Settings) -> AsyncEngine:
-    connect_args = {"check_same_thread": False} if settings.is_sqlite else {}
+    connect_args: dict = {}
+    if settings.is_sqlite:
+        connect_args["check_same_thread"] = False
+    elif "supabase.com" in settings.database_url:
+        connect_args["ssl"] = True
     return create_async_engine(
         settings.database_url,
         echo=False,
