@@ -1,4 +1,5 @@
 import logging
+import os
 import sys
 
 from loguru import logger
@@ -29,13 +30,15 @@ def redact(value: str) -> str:
 
 
 def setup_logging(level: str = "INFO") -> None:
+    # enqueue uses multiprocessing.SimpleQueue; unavailable on Vercel serverless.
+    enqueue = os.environ.get("VERCEL") != "1"
     logger.remove()
     logger.add(
         sys.stdout,
         level=level.upper(),
         backtrace=False,
         diagnose=False,
-        enqueue=True,
+        enqueue=enqueue,
     )
     logging.basicConfig(handlers=[InterceptHandler()], level=0, force=True)
     for name in ("uvicorn", "uvicorn.error", "uvicorn.access", "sqlalchemy.engine"):
