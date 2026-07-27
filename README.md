@@ -127,3 +127,33 @@ multilingual catalog/search, parser jobs, and the rate limiter.
 Admins can configure parser sources and start parser jobs from admin/API flows. Parsed items are saved
 as draft/imported review records and are not visible in the bot until approved and activated.
 
+## Deploy to Vercel
+
+Prerequisites: GitHub repo connected to Vercel (or CLI login), Supabase Free Postgres URL in `.env`
+(not SQLite), and `TELEGRAM_MODE=webhook`.
+
+1. Commit and push this branch (or merge to `main`).
+2. Link the project once:
+
+```bash
+npx vercel login
+npx vercel link
+```
+
+3. Sync env vars from local `.env` into Vercel (values are not printed):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/sync-vercel-env.ps1
+```
+
+4. Deploy production:
+
+```bash
+npx vercel --prod
+```
+
+5. Copy the resulting `https://….vercel.app` URL into `.env` as `BACKEND_URL`, re-run the sync script,
+   and redeploy so Telegram `setWebhook` uses the public URL.
+
+Git pushes to the linked production branch then redeploy automatically. Never commit `.env`.
+
