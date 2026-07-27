@@ -1,17 +1,19 @@
 name: CI and Deploy Vercel
 
-# Push to main: test → sync env from GitHub secret ENV_PROD → deploy Vercel production.
+# Push to main: test → write .env.prod from secret ENV_PROD → deploy Vercel.
 # PR: test only.
 #
-# Required GitHub Secrets (Settings → Secrets and variables → Actions):
-#   VERCEL_TOKEN        — https://vercel.com/account/tokens
-#   VERCEL_ORG_ID       — from .vercel/project.json (orgId) after `npx vercel link`
-#   VERCEL_PROJECT_ID   — from .vercel/project.json (projectId)
-#   ENV_PROD            — full contents of local .env.prod (never commit that file)
+# Single required GitHub Secret:
+#   ENV_PROD — full contents of local .env.prod (gitignored; never commit it)
+#
+# .env.prod must include (for CI deploy):
+#   VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID
+# plus app settings (DATABASE_URL, BOT_TOKEN, BACKEND_URL, TELEGRAM_*, …).
+# VERCEL_* keys are used only by CI; they are not synced into the Vercel app runtime env.
 #
 # Optional repo Variable:
-#   VERCEL_PRODUCTION_URL — e.g. https://course-hub.vercel.app
-#     If set, workflow ensures BACKEND_URL in the synced env matches this URL.
+#   VERCEL_PRODUCTION_URL — e.g. https://course-hub-….vercel.app
+#   If set, CI overwrites BACKEND_URL before syncing app env.
 
 on:
   push:
@@ -63,18 +65,43 @@ jobs:
       - name: Install Vercel CLI
         run: npm install -g vercel@latest
 
-      - name: Write .env.prod from secret
+      - name: Write .env.prod from secret ENV_PROD
         env:
           ENV_PROD: ${{ secrets.ENV_PROD }}
         run: |
           set -euo pipefail
           if [ -z "${ENV_PROD}" ]; then
-            echo "Secret ENV_PROD is empty. Paste your .env.prod contents into GitHub Actions secret ENV_PROD." >&2
+            echo "Secret ENV_PROD is empty. Paste your full .env.prod into GitHub Actions secret ENV_PROD." >&2
             exit 1
           fi
           printf '%s\n' "$ENV_PROD" > .env.prod
-          # Never upload .env.prod as a build artifact
           echo ".env.prod" >> .gitignore
+
+      - name: Load Vercel credentials from .env.prod
+        id: vercel_creds
+        run: |
+          set -euo pipefail
+          get_val() {
+            local key="$1"
+            local line
+            line=$(grep -E "^${key}=" .env.prod | tail -n1 || true)
+            if [ -z "$line" ]; then
+              echo "Missing ${key}= in ENV_PROD / .env.prod" >&2
+              exit 1
+            fi
+            printf '%s' "${line#*=}"
+          }
+          TOKEN="$(get_val VERCEL_TOKEN)"
+          ORG="$(get_val VERCEL_ORG_ID)"
+          PROJECT="$(get_val VERCEL_PROJECT_ID)"
+          if [ -z "$TOKEN" ] || [ -z "$ORG" ] || [ -z "$PROJECT" ]; then
+            echo "VERCEL_TOKEN / VERCEL_ORG_ID / VERCEL_PROJECT_ID must be non-empty in .env.prod" >&2
+            exit 1
+          fi
+          echo "token=$TOKEN" >> "$GITHUB_OUTPUT"
+          echo "org=$ORG" >> "$GITHUB_OUTPUT"
+          echo "project=$PROJECT" >> "$GITHUB_OUTPUT"
+          echo "Loaded VERCEL_* from .env.prod (values hidden)."
 
       - name: Ensure production BACKEND_URL
         env:
@@ -94,29 +121,31 @@ jobs:
 
       - name: Pull Vercel project settings
         env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_TOKEN: ${{ steps.vercel_creds.outputs.token }}
+          VERCEL_ORG_ID: ${{ steps.vercel_creds.outputs.org }}
+          VERCEL_PROJECT_ID: ${{ steps.vercel_creds.outputs.project }}
         run: |
           set -euo pipefail
           vercel pull --yes --environment=production --token "$VERCEL_TOKEN"
 
-      - name: Sync .env.prod → Vercel production env
+      - name: Sync .env.prod → Vercel production app env
         env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_TOKEN: ${{ steps.vercel_creds.outputs.token }}
+          VERCEL_ORG_ID: ${{ steps.vercel_creds.outputs.org }}
+          VERCEL_PROJECT_ID: ${{ steps.vercel_creds.outputs.project }}
         run: |
           set -euo pipefail
           chmod +x scripts/sync-vercel-env.sh
-          ./scripts/sync-vercel-env.sh .env.prod production
+          # Skip CI-only keys so they are not injected into the FastAPI runtime
+          SKIP_KEYS="HOST PORT VERCEL_TOKEN VERCEL_ORG_ID VERCEL_PROJECT_ID" \
+            ./scripts/sync-vercel-env.sh .env.prod production
 
       - name: Deploy to Vercel (production)
         id: deploy
         env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_TOKEN: ${{ steps.vercel_creds.outputs.token }}
+          VERCEL_ORG_ID: ${{ steps.vercel_creds.outputs.org }}
+          VERCEL_PROJECT_ID: ${{ steps.vercel_creds.outputs.project }}
         run: |
           set -euo pipefail
           URL=$(vercel deploy --prod --yes --token "$VERCEL_TOKEN")

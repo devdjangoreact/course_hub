@@ -19,7 +19,10 @@ if (-not (Test-Path $EnvFile)) {
 
 $skipKeys = @(
     "HOST",
-    "PORT"
+    "PORT",
+    "VERCEL_TOKEN",
+    "VERCEL_ORG_ID",
+    "VERCEL_PROJECT_ID"
 )
 
 function Get-EnvPairs([string]$path) {

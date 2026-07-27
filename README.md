@@ -138,28 +138,21 @@ Never commit `.env` / `.env.prod`. Keep real values only in:
 
 ### One-time setup
 
-1. Create local `.env.prod` from `.env.prod.example` (Supabase Postgres URL, bot token, webhook mode).
-2. Link Vercel once and note IDs:
-
-```bash
-npx vercel login
-npx vercel link
-# read orgId + projectId from .vercel/project.json
-```
-
-3. GitHub → **Settings → Secrets and variables → Actions** → add secrets:
+1. Create local `.env.prod` from `.env.prod.example` (Supabase, bot, webhook mode, **and**
+   `VERCEL_TOKEN` / `VERCEL_ORG_ID` / `VERCEL_PROJECT_ID`).
+2. GitHub → **Settings → Secrets and variables → Actions** → one secret:
 
 | Secret | Value |
 |--------|--------|
-| `VERCEL_TOKEN` | [vercel.com/account/tokens](https://vercel.com/account/tokens) |
-| `VERCEL_ORG_ID` | `orgId` from `.vercel/project.json` |
-| `VERCEL_PROJECT_ID` | `projectId` from `.vercel/project.json` |
 | `ENV_PROD` | **full text** of your local `.env.prod` |
 
-4. Optional Variable `VERCEL_PRODUCTION_URL` = `https://your-project.vercel.app`  
-   CI overwrites `BACKEND_URL` in the synced env so Telegram webhook always points at prod.
+CI reads `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID` from that file and deploys.
+Do **not** commit `.env.prod`.
 
-5. Push to `main`. Workflow: `.github/workflows/deploy-vercel.yml`.
+3. Optional Variable `VERCEL_PRODUCTION_URL` = `https://your-project.vercel.app`  
+   CI overwrites `BACKEND_URL` so Telegram webhook points at prod.
+
+4. Push to `main`. Workflow: `.github/workflows/deploy-vercel.yml`.
 
 ### Manual sync (optional)
 

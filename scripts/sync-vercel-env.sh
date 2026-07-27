@@ -5,7 +5,7 @@ set -euo pipefail
 
 ENV_FILE="${1:-.env.prod}"
 TARGET="${2:-production}"
-SKIP_KEYS="${SKIP_KEYS:-HOST PORT}"
+SKIP_KEYS="${SKIP_KEYS:-HOST PORT VERCEL_TOKEN VERCEL_ORG_ID VERCEL_PROJECT_ID}"
 
 if [[ ! -f "$ENV_FILE" ]]; then
   echo "Env file not found: $ENV_FILE" >&2
