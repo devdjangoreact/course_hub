@@ -4,7 +4,7 @@ import logging
 from app.domain.entities.order import Order
 from app.domain.entities.payment_intent import PaymentIntent
 from app.domain.entities.payment_settings import PaymentSettings
-from app.domain.exceptions import ValidationError
+from app.application.errors import ValidationError
 from app.domain.repositories.payment_gateway import PaymentGateway
 
 logger = logging.getLogger(__name__)
