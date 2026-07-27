@@ -1,4 +1,5 @@
 from collections.abc import AsyncIterator
+import os
 
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
@@ -6,6 +7,7 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     create_async_engine,
 )
+from sqlalchemy.pool import NullPool
 
 from app.core.config import Settings
 
@@ -24,16 +26,18 @@ def _async_database_url(url: str) -> str:
 def create_engine(settings: Settings) -> AsyncEngine:
     url = _async_database_url(settings.database_url)
     connect_args: dict = {}
+    engine_kwargs: dict = {"echo": False, "future": True}
     if settings.is_sqlite:
         connect_args["check_same_thread"] = False
     elif "supabase.com" in url:
         connect_args["ssl"] = True
-    return create_async_engine(
-        url,
-        echo=False,
-        future=True,
-        connect_args=connect_args,
-    )
+        # Transaction pooler (port 6543) + asyncpg: disable prepared statement cache
+        if "pooler.supabase.com" in url or ":6543/" in url or url.rstrip("/").endswith(":6543"):
+            connect_args["statement_cache_size"] = 0
+            connect_args["prepared_statement_cache_size"] = 0
+    if os.environ.get("VERCEL") == "1":
+        engine_kwargs["poolclass"] = NullPool
+    return create_async_engine(url, connect_args=connect_args, **engine_kwargs)
 
 
 def create_session_factory(engine: AsyncEngine) -> async_sessionmaker[AsyncSession]:
