@@ -83,13 +83,20 @@ jobs:
           set -euo pipefail
           get_val() {
             local key="$1"
-            local line
+            local line value
             line=$(grep -E "^${key}=" .env.prod | tail -n1 || true)
             if [ -z "$line" ]; then
               echo "Missing ${key}= in ENV_PROD / .env.prod" >&2
               exit 1
             fi
-            printf '%s' "${line#*=}"
+            value="${line#*=}"
+            # Strip Windows CRLF and surrounding quotes from secret file
+            value="$(printf '%s' "$value" | tr -d '\r')"
+            value="${value%\"}"
+            value="${value#\"}"
+            value="${value%\'}"
+            value="${value#\'}"
+            printf '%s' "$value"
           }
           TOKEN="$(get_val VERCEL_TOKEN)"
           ORG="$(get_val VERCEL_ORG_ID)"
@@ -98,9 +105,20 @@ jobs:
             echo "VERCEL_TOKEN / VERCEL_ORG_ID / VERCEL_PROJECT_ID must be non-empty in .env.prod" >&2
             exit 1
           fi
-          echo "token=$TOKEN" >> "$GITHUB_OUTPUT"
-          echo "org=$ORG" >> "$GITHUB_OUTPUT"
-          echo "project=$PROJECT" >> "$GITHUB_OUTPUT"
+          echo "::add-mask::$TOKEN"
+          echo "::add-mask::$ORG"
+          echo "::add-mask::$PROJECT"
+          {
+            echo "token<<EOF"
+            printf '%s\n' "$TOKEN"
+            echo "EOF"
+            echo "org<<EOF"
+            printf '%s\n' "$ORG"
+            echo "EOF"
+            echo "project<<EOF"
+            printf '%s\n' "$PROJECT"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
           echo "Loaded VERCEL_* from .env.prod (values hidden)."
 
       - name: Ensure production BACKEND_URL
