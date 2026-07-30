@@ -215,14 +215,16 @@ class PaymentSettingsAdmin(ModelView, model=PaymentSettingsModel):
         PaymentSettingsModel.updated_at,
     ]
     column_formatters = {
-        PaymentSettingsModel.api_key: lambda model, _: _mask_secret(model, "api_key", model.api_key),
+        PaymentSettingsModel.api_key: lambda model, _: _mask_secret(
+            model, "api_key", model.api_key
+        ),
         PaymentSettingsModel.secret_key: lambda model, _: _mask_secret(
             model, "secret_key", model.secret_key
         ),
     }
     column_labels = {
-        PaymentSettingsModel.api_key: "API key (lava Public API)",
-        PaymentSettingsModel.secret_key: "Webhook secret (X-Api-Key)",
+        PaymentSettingsModel.api_key: "API key / Merchant ID",
+        PaymentSettingsModel.secret_key: "Webhook secret / API secret",
         PaymentSettingsModel.extra: "Extra (lava_env, checkout_mode)",
     }
     form_columns = [
@@ -242,14 +244,17 @@ class PaymentSettingsAdmin(ModelView, model=PaymentSettingsModel):
             "choices": [
                 ("simulated", "Simulated (local dev)"),
                 ("lava", "lava.top"),
+                ("atlos", "ATLOS"),
             ],
             "description": "Active payment provider for new orders.",
         },
         "api_key": {
-            "description": "lava.top Public API key. Leave empty for simulated provider.",
+            "description": "lava.top Public API key or ATLOS Merchant ID.",
         },
         "secret_key": {
-            "description": "lava.top Webhook API key sent as X-Api-Key. Also used for simulated HMAC.",
+            "description": (
+                "lava.top Webhook API key, ATLOS API secret, or simulated HMAC secret."
+            ),
         },
         "currency": {
             "choices": [("USD", "USD"), ("EUR", "EUR"), ("RUB", "RUB")],

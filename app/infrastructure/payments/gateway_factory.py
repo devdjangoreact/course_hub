@@ -2,9 +2,9 @@ from app.domain.entities.order import Order
 from app.domain.entities.payment_intent import PaymentIntent
 from app.domain.entities.payment_settings import PaymentSettings
 from app.domain.repositories.payment_gateway import PaymentGateway
+from app.infrastructure.payments.atlos_gateway import AtlosPaymentGateway
 from app.infrastructure.payments.lava_gateway import LavaPaymentGateway
 from app.infrastructure.payments.simulated_gateway import SimulatedPaymentGateway
-from app.infrastructure.payments.atlos_gateway import AtlosPaymentGateway
 
 
 class RoutingPaymentGateway(PaymentGateway):
@@ -44,9 +44,11 @@ class RoutingPaymentGateway(PaymentGateway):
             buyer_email=buyer_email,
         )
 
-    def verify_signature(
-        self, payload: bytes, signature: str, settings: PaymentSettings
-    ) -> bool:
+    def verify_signature(self, payload: bytes, signature: str, settings: PaymentSettings) -> bool:
+        if settings.provider == "lava":
+            return self._lava.verify_signature(payload, signature, settings)
+        if settings.provider == "atlos":
+            return self._atlos.verify_signature(payload, signature, settings)
         return self._simulated.verify_signature(payload, signature, settings)
 
 
