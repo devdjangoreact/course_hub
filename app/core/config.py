@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
+        env_ignore_empty=True,
         extra="ignore",
     )
 
@@ -56,6 +57,17 @@ class Settings(BaseSettings):
     search_suggestion_min_chars: int = 3
     search_suggestion_limit: int = 5
     parser_request_timeout_seconds: int = 10
+
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_user: str = ""
+    smtp_password: str = ""
+    smtp_from: str = ""
+    smtp_use_tls: bool = True
+
+    catalog_channel_id: int | None = None
+    catalog_invite_link: str = ""
+    catalog_discussion_group_id: int | None = None
 
     @property
     def is_development(self) -> bool:

@@ -167,3 +167,18 @@ npx vercel --prod
 ```
 
 Existing ECR/`infra` pipeline in `.github/workflows/build.yml` is unchanged.
+
+## Local catalog toolbox
+
+Logic lives in `tools/catalog/` (not deployed to Vercel). Run **one script** and toggle
+steps at the top of the file; secrets stay in `.env`.
+
+```bash
+pip install -r tools/catalog/requirements.txt
+# edit DO_PARSE / DO_NORMALIZE / DO_ENRICH / DO_POST / DO_SYNC_DB / POST_IDS
+python scripts/catalog_pipeline.py
+```
+
+`.env`: `TG_*` (parse), `BOT_TOKEN` + `CATALOG_*` (post + Vercel), `AI_*` (enrich), `DATABASE_URL`.
+
+Do not add pyrogram/playwright/boto3 to the app Poetry dependencies.

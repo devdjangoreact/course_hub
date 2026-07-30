@@ -1,5 +1,6 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from decimal import Decimal
+from typing import Any
 
 from app.application.errors import NotFoundError
 from app.domain.entities.category import Category
@@ -29,6 +30,7 @@ class LocalizedCourse:
     link: str
     language: str
     fallback_used: bool
+    extra: dict[str, Any] = field(default_factory=dict)
 
 
 class CatalogService:
@@ -87,6 +89,7 @@ class CatalogService:
                     link=course.link,
                     language=language_code,
                     fallback_used=translation is None,
+                    extra=dict(course.extra),
                 )
             )
         return localized
@@ -99,6 +102,17 @@ class CatalogService:
 
     async def get_localized_course(self, course_id: int, language_code: str) -> LocalizedCourse:
         course = await self.get_course(course_id)
+        return await self._localize_course(course, language_code)
+
+    async def get_localized_course_by_catalog_slug(
+        self, catalog_slug: str, language_code: str
+    ) -> LocalizedCourse:
+        course = await self._courses.get_by_catalog_slug(catalog_slug)
+        if course is None or not course.is_active:
+            raise NotFoundError("Course not found")
+        return await self._localize_course(course, language_code)
+
+    async def _localize_course(self, course: Course, language_code: str) -> LocalizedCourse:
         translation = None
         if self._translations is not None and course.id is not None:
             translation = await self._translations.get_course_translation(course.id, language_code)
@@ -112,6 +126,7 @@ class CatalogService:
             link=course.link,
             language=language_code,
             fallback_used=translation is None,
+            extra=dict(course.extra),
         )
 
     async def _category_translation_map(self, language_code: str) -> dict[int, CategoryTranslation]:

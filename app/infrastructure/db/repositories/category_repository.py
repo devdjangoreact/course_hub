@@ -22,6 +22,11 @@ class SqlCategoryRepository(CategoryRepository):
         model = await self._session.get(CategoryModel, category_id)
         return _to_entity(model) if model is not None else None
 
+    async def get_by_name(self, name: str) -> Category | None:
+        stmt = select(CategoryModel).where(CategoryModel.name == name)
+        model = (await self._session.execute(stmt)).scalar_one_or_none()
+        return _to_entity(model) if model is not None else None
+
     async def add(self, category: Category) -> Category:
         model = CategoryModel(name=category.name, extra=category.extra)
         self._session.add(model)

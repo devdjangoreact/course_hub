@@ -171,6 +171,7 @@ async def payment_webhook(
 
 @router.post("/payments/simulate")
 async def simulate_payment(
+    request: Request,
     service: OrderServiceDep,
     settings: SettingsDep,
     reference: Annotated[str, Query()],
@@ -178,5 +179,10 @@ async def simulate_payment(
 ) -> dict[str, bool]:
     if not settings.is_development:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not found")
-    await service.confirm_payment(reference, result)
+    order, applied = await service.confirm_payment(reference, result)
+    if applied:
+        user = await service.get_order_user(order)
+        bot_app = getattr(request.app.state, "bot_app", None)
+        if order.id is not None and bot_app is not None:
+            await bot_app.notify_payment_status(user.telegram_id, order.id, order.status.value)
     return {"ok": True}

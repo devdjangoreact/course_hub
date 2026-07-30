@@ -45,6 +45,18 @@ class SqlOrderRepository(OrderRepository):
         model = (await self._session.execute(stmt)).scalar_one_or_none()
         return _to_entity(model) if model is not None else None
 
+    async def has_paid_course(self, bot_user_id: int, course_id: int) -> bool:
+        stmt = (
+            select(OrderModel.id)
+            .where(
+                OrderModel.bot_user_id == bot_user_id,
+                OrderModel.course_id == course_id,
+                OrderModel.status == OrderStatus.PAID.value,
+            )
+            .limit(1)
+        )
+        return (await self._session.execute(stmt)).scalar_one_or_none() is not None
+
     async def update(self, order: Order) -> Order:
         if order.id is None:
             raise ValueError("Cannot update an order without an id")

@@ -5,6 +5,15 @@
 !.env.dev.example
 !.env.prod.example
 
+# Pyrogram sessions (phone / auth files)
+sessions_parogram/
+
+# Telegram group/channel exports (local)
+data/telegram_exports/
+
+# Generated Flancki catalog JSON (rebuilt by tools/catalog/normalize.py)
+data/catalog/categories/flancki/
+
 # Python
 __pycache__/
 *.py[cod]

@@ -2,7 +2,11 @@ from aiogram import F, Router
 from aiogram.filters import Command
 from aiogram.types import CallbackQuery, Message
 
+from app.application.errors import NotFoundError
+from app.application.services.catalog_service import CatalogService
 from app.application.services.localization_service import LocalizationService
+from app.application.services.order_service import OrderService
+from app.bot.handlers.categories import send_course_access
 from app.bot.keyboards.language import language_keyboard
 from app.bot.keyboards.main_menu import main_menu_keyboard
 from app.bot.messages.catalog import DEFAULT_LANGUAGE
@@ -11,6 +15,14 @@ from app.domain.entities.bot_user import BotUser
 from app.domain.repositories.bot_user_repository import BotUserRepository
 
 router = Router(name="start")
+
+
+def _catalog_slug(text: str | None) -> str | None:
+    parts = (text or "").strip().split(maxsplit=1)
+    if len(parts) != 2 or not parts[1].startswith("course_"):
+        return None
+    slug = parts[1].removeprefix("course_").strip()
+    return slug or None
 
 
 async def _get_user_language(
@@ -45,8 +57,25 @@ async def handle_start(
     message: Message,
     bot_users: BotUserRepository,
     localization: LocalizationService,
+    catalog: CatalogService | None = None,
+    orders: OrderService | None = None,
 ) -> None:
     is_new = await _upsert_from_message(message, bot_users)
+    slug = _catalog_slug(message.text)
+    if (
+        slug is not None
+        and catalog is not None
+        and orders is not None
+        and message.from_user is not None
+    ):
+        language = await _get_user_language(message.from_user.id, bot_users, localization)
+        try:
+            course = await catalog.get_localized_course_by_catalog_slug(slug, language)
+        except NotFoundError:
+            await message.answer(bot_message(language, "course_not_found"))
+            return
+        await send_course_access(message, message.from_user.id, course, language, orders)
+        return
     if is_new:
         await message.answer(
             bot_message(DEFAULT_LANGUAGE, "choose_language"),

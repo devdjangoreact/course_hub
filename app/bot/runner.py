@@ -8,13 +8,20 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import Update
 from loguru import logger
 
+from app.bot import delivery as course_delivery
 from app.bot.context import BotRuntime
 from app.bot.handlers import categories, order, search, start
 from app.bot.messages.catalog import DEFAULT_LANGUAGE
 from app.bot.messages.catalog import message as bot_message
 from app.bot.middleware import ServicesMiddleware
+from app.application.services.delivery_mailer import DeliveryMailer
 from app.core.config import TelegramMode
+from app.domain.entities.order_status import OrderStatus
 from app.infrastructure.db.repositories.bot_user_repository import SqlBotUserRepository
+from app.infrastructure.db.repositories.course_repository import SqlCourseRepository
+from app.infrastructure.db.repositories.order_repository import SqlOrderRepository
+from app.infrastructure.email.smtp_mailer import SmtpMailer
+from app.infrastructure.payments.lava_helpers import payment_email
 from app.infrastructure.settings_store.bot_settings_repository import SqlBotSettingsRepository
 
 
@@ -116,8 +123,48 @@ class BotApp:
             return
         async with self._runtime.database.session_factory() as session:
             user = await SqlBotUserRepository(session).get_by_telegram_id(telegram_id)
+            order = await SqlOrderRepository(session).get(order_id)
+            course = None
+            if order is not None:
+                course = await SqlCourseRepository(session).get(order.course_id)
         language = user.preferred_language if user is not None else DEFAULT_LANGUAGE
         await self._bot.send_message(
             telegram_id,
             f"{bot_message(language, 'payment_status')} #{order_id}: {status}.",
         )
+        if status != OrderStatus.PAID.value or course is None:
+            return
+
+        url = course_delivery.download_link(course.link, course.extra)
+        invite = course_delivery.invite_link(
+            course.extra, fallback=self._runtime.env_settings.catalog_invite_link
+        )
+        if not url.strip():
+            logger.error("Missing download link for course_id={} order_id={}", course.id, order_id)
+            await self._bot.send_message(telegram_id, bot_message(language, "download_missing"))
+            return
+
+        download_text = f"{bot_message(language, 'download_ready')}: {url}"
+        if invite:
+            download_text += f"\n{bot_message(language, 'invite_line')}: {invite}"
+        await self._bot.send_message(telegram_id, download_text)
+
+        email = payment_email(user.extra) if user is not None else None
+        if email is None:
+            logger.info("No buyer email for telegram_id={}; skip paid email", telegram_id)
+            return
+        settings = self._runtime.env_settings
+        mailer = DeliveryMailer(
+            SmtpMailer(
+                host=settings.smtp_host,
+                port=settings.smtp_port,
+                username=settings.smtp_user,
+                password=settings.smtp_password,
+                from_addr=settings.smtp_from,
+                use_tls=settings.smtp_use_tls,
+            )
+        )
+        try:
+            mailer.send_paid_course(email, course.name, url, invite)
+        except Exception:
+            logger.exception("Failed to send paid course email for order_id={}", order_id)

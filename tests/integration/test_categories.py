@@ -14,6 +14,7 @@ async def test_list_courses_in_category(client: AsyncClient, seeded: dict[str, i
     courses = response.json()
     assert len(courses) == 1
     assert courses[0]["id"] == seeded["course_id"]
+    assert "link" not in courses[0]
 
 
 async def test_list_courses_unknown_category(client: AsyncClient) -> None:

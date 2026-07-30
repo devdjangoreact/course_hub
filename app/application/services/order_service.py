@@ -121,6 +121,12 @@ class OrderService:
             raise NotFoundError("Order user not found")
         return user
 
+    async def has_paid_course(self, telegram_id: int, course_id: int) -> bool:
+        user = await self._bot_users.get_by_telegram_id(telegram_id)
+        if user is None or user.id is None:
+            return False
+        return await self._orders.has_paid_course(user.id, course_id)
+
     async def verify_webhook(self, payload: bytes, signature: str) -> bool:
         return self._gateway.verify_signature(payload, signature, await self._settings())
 

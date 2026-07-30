@@ -43,6 +43,14 @@ class SqlCourseRepository(CourseRepository):
         model = await self._session.get(CourseModel, course_id)
         return _to_entity(model) if model is not None else None
 
+    async def get_by_catalog_slug(self, slug: str) -> Course | None:
+        stmt = select(CourseModel).where(
+            CourseModel.extra["catalog_slug"].as_string() == slug,
+            CourseModel.is_active.is_(True),
+        )
+        model = (await self._session.execute(stmt)).scalar_one_or_none()
+        return _to_entity(model) if model is not None else None
+
     async def add(self, course: Course) -> Course:
         model = CourseModel(
             name=course.name,
@@ -54,5 +62,21 @@ class SqlCourseRepository(CourseRepository):
             extra=course.extra,
         )
         self._session.add(model)
+        await self._session.flush()
+        return _to_entity(model)
+
+    async def update(self, course: Course) -> Course:
+        if course.id is None:
+            raise ValueError("Cannot update a course without an id")
+        model = await self._session.get(CourseModel, course.id)
+        if model is None:
+            raise ValueError("Course not found")
+        model.name = course.name
+        model.description = course.description
+        model.category_id = course.category_id
+        model.price = course.price
+        model.link = course.link
+        model.is_active = course.is_active
+        model.extra = course.extra
         await self._session.flush()
         return _to_entity(model)

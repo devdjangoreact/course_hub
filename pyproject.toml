@@ -48,6 +48,12 @@ loguru = "^0.7.2"
 httpx = "^0.28.0"
 lava-top-sdk = "^1.1.1"
 
+[tool.poetry.group.catalog]
+optional = true
+
+[tool.poetry.group.catalog.dependencies]
+pyrogram = "^2.0.106"
+
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.0"
 pytest-asyncio = "^0.24.0"

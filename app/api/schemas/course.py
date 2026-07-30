@@ -12,7 +12,6 @@ class CourseOut(BaseModel):
     description: str
     category_id: int
     price: Decimal
-    link: str
     language: str | None = None
     fallback_used: bool = False
 
@@ -25,7 +24,6 @@ class CourseOut(BaseModel):
             description=course.description,
             category_id=course.category_id,
             price=course.price,
-            link=course.link,
         )
 
     @classmethod
@@ -36,7 +34,6 @@ class CourseOut(BaseModel):
             description=course.description,
             category_id=course.category_id,
             price=course.price,
-            link=course.link,
             language=course.language,
             fallback_used=course.fallback_used,
         )

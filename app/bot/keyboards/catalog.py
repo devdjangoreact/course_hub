@@ -82,6 +82,18 @@ def course_detail_keyboard(
                     text=message(language_code, "order"), callback_data=f"order:{course_id}"
                 )
             ],
+            [
+                InlineKeyboardButton(
+                    text=message(language_code, "promo_materials"),
+                    callback_data=f"course:promo:{course_id}",
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    text=message(language_code, "promo_email_button"),
+                    callback_data=f"course:promo_email:{course_id}",
+                )
+            ],
             [InlineKeyboardButton(text=message(language_code, "menu"), callback_data="menu:home")],
         ]
     )

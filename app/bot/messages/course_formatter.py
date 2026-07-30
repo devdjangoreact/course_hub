@@ -10,7 +10,6 @@ def format_course(
     name: str,
     description: str,
     price: Decimal,
-    link: str,
     category_name: str | None = None,
 ) -> str:
     display_description = _shorten(description)
@@ -23,8 +22,7 @@ def format_course(
         f"<b>{name}</b>\n"
         f"{category_line}"
         f"{bot_message(language_code, 'course_price')}: {price}\n\n"
-        f"{display_description}\n\n"
-        f"{bot_message(language_code, 'course_link')}: {link}"
+        f"{display_description}"
     )
 
 

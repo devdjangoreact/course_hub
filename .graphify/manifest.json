@@ -1,0 +1,942 @@
+{
+  "C:/shere-folder/course_hub/alembic/env.py": {
+    "mtime": 1783851969505.4727,
+    "hash": "7714c028754d488ee1f7d5c9b44753bb"
+  },
+  "C:/shere-folder/course_hub/alembic/versions/0001_initial.py": {
+    "mtime": 1783851969507.4524,
+    "hash": "b69865621523024b84ccc2a1a1dd928e"
+  },
+  "C:/shere-folder/course_hub/alembic/versions/0002_multilingual_search.py": {
+    "mtime": 1783851969508.4534,
+    "hash": "35f6a9f841851dd1121c603dfcce3961"
+  },
+  "C:/shere-folder/course_hub/app/__init__.py": {
+    "mtime": 1783851969509.453,
+    "hash": "a0f3bb8adb755eb5593f986f2d3791d0"
+  },
+  "C:/shere-folder/course_hub/app/admin/__init__.py": {
+    "mtime": 1783851969509.453,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:/shere-folder/course_hub/app/admin/auth.py": {
+    "mtime": 1783851969510.4526,
+    "hash": "309d6c63f65a77923aca841ec88c7694"
+  },
+  "C:/shere-folder/course_hub/app/admin/setup.py": {
+    "mtime": 1783851969510.4526,
+    "hash": "43d438713dae0650756b795ea1bdbda6"
+  },
+  "C:/shere-folder/course_hub/app/admin/views.py": {
+    "mtime": 1785126337712.0444,
+    "hash": "cc88ffb0e50c78791412c8edad0a862d"
+  },
+  "C:/shere-folder/course_hub/app/api/__init__.py": {
+    "mtime": 1783851969512.453,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:/shere-folder/course_hub/app/api/deps.py": {
+    "mtime": 1783851969512.453,
+    "hash": "b868fcfefbd9171d044704dab1d5c341"
+  },
+  "C:/shere-folder/course_hub/app/api/routers/__init__.py": {
+    "mtime": 1783851969513.4524,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:/shere-folder/course_hub/app/api/routers/catalog.py": {
+    "mtime": 1783851969514.4524,
+    "hash": "a065a2335b33cce5ccc0de4fc9d766cb"
+  },
+  "C:/shere-folder/course_hub/app/api/routers/health.py": {
+    "mtime": 1783851969514.4524,
+    "hash": "3def4c0b5605591ff7e7c304e9f539ce"
+  },
+  "C:/shere-folder/course_hub/app/api/routers/orders.py": {
+    "mtime": 1785347425563.9404,
+    "hash": "06810706974b987b00d7f78df5aae721"
+  },
+  "C:/shere-folder/course_hub/app/api/routers/parser.py": {
+    "mtime": 1783851969515.4558,
+    "hash": "cd32d84ab53e7f2c639d9672f123a3e4"
+  },
+  "C:/shere-folder/course_hub/app/api/routers/telegram.py": {
+    "mtime": 1785125567764.8176,
+    "hash": "a48b5f2f280369025b82d86650b10a02"
+  },
+  "C:/shere-folder/course_hub/app/api/schemas/__init__.py": {
+    "mtime": 1783851969516.4526,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:/shere-folder/course_hub/app/api/schemas/atlos_webhook.py": {
+    "mtime": 1783852580474.9275,
+    "hash": "7db1b5a8d347f1553480803ee6c2d372"
+  },
+  "C:/shere-folder/course_hub/app/api/schemas/category.py": {
+    "mtime": 1783851969517.4524,
+    "hash": "a2d4b2b162ba2e7c832f93dd4ea60a24"
+  },
+  "C:/shere-folder/course_hub/app/api/schemas/course.py": {
+    "mtime": 1785356588182.8699,
+    "hash": "0c05b707cf34216aa51f91ca6bfed289"
+  },
+  "C:/shere-folder/course_hub/app/api/schemas/lava_webhook.py": {
+    "mtime": 1783851969518.4526,
+    "hash": "3f9bc19feb589778f0dc955b9f22b718"
+  },
+  "C:/shere-folder/course_hub/app/api/schemas/order.py": {
+    "mtime": 1783851969518.4526,
+    "hash": "2d6d2e7ed11e466b60eca224b054a5ab"
+  },
+  "C:/shere-folder/course_hub/app/api/schemas/parser.py": {
+    "mtime": 1783851969519.4539,
+    "hash": "4c6f5a4d3ebd09648f8c211f8552af43"
+  },
+  "C:/shere-folder/course_hub/app/api/schemas/payment.py": {
+    "mtime": 1783851969519.4539,
+    "hash": "88fa6e6459589312dda20db72204e33e"
+  },
+  "C:/shere-folder/course_hub/app/api/schemas/search.py": {
+    "mtime": 1783851969520.4536,
+    "hash": "9925026461d98230ddfad871fa544542"
+  },
+  "C:/shere-folder/course_hub/app/application/__init__.py": {
+    "mtime": 1783851969521.4524,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:/shere-folder/course_hub/app/application/errors.py": {
+    "mtime": 1783851969521.4524,
+    "hash": "37d1d4d79d2eb7b529bea30a5c7e079b"
+  },
+  "C:/shere-folder/course_hub/app/application/services/__init__.py": {
+    "mtime": 1783851969522.4546,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:/shere-folder/course_hub/app/application/services/catalog_service.py": {
+    "mtime": 1785356577695.215,
+    "hash": "e777adad5c73c2d1001031231371bcf3"
+  },
+  "C:/shere-folder/course_hub/app/application/services/delivery_mailer.py": {
+    "mtime": 1785283037578.1619,
+    "hash": "de7672fa57c9a85e5f971ea3865452f9"
+  },
+  "C:/shere-folder/course_hub/app/application/services/localization_service.py": {
+    "mtime": 1783851969523.4531,
+    "hash": "7c4157ee23bfbe56b497b9cc71bf955d"
+  },
+  "C:/shere-folder/course_hub/app/application/services/order_service.py": {
+    "mtime": 1785126337713.5764,
+    "hash": "b1cd15b7ce651baa70875a6183405017"
+  },
+  "C:/shere-folder/course_hub/app/application/services/parser_service.py": {
+    "mtime": 1783851969525.4514,
+    "hash": "2b97f8f93fb5eae608b9fb5584d811cf"
+  },
+  "C:/shere-folder/course_hub/app/application/services/runtime_settings.py": {
+    "mtime": 1783851969525.4514,
+    "hash": "cb53db6d347af3cfeb3da1685088cdcf"
+  },
+  "C:/shere-folder/course_hub/app/application/services/search_service.py": {
+    "mtime": 1783851969526.454,
+    "hash": "425c348932da43f72cdb0a02d05e207a"
+  },
+  "C:/shere-folder/course_hub/app/bootstrap.py": {
+    "mtime": 1785126337714.5767,
+    "hash": "a40ae1dc8b453d64d960d6ff83e40606"
+  },
+  "C:/shere-folder/course_hub/app/bot/__init__.py": {
+    "mtime": 1783851969527.455,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:/shere-folder/course_hub/app/bot/context.py": {
+    "mtime": 1783851969528.4536,
+    "hash": "1322536945d260bc68fedf475966a44d"
+  },
+  "C:/shere-folder/course_hub/app/bot/delivery.py": {
+    "mtime": 1785284394062.5718,
+    "hash": "57b8194abf104fc5981c6318cfd20d4d"
+  },
+  "C:/shere-folder/course_hub/app/bot/handlers/__init__.py": {
+    "mtime": 1783851969529.4763,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:/shere-folder/course_hub/app/bot/handlers/categories.py": {
+    "mtime": 1785356571654.0366,
+    "hash": "8b397aacb9d654d872d8ca9906c5acf4"
+  },
+  "C:/shere-folder/course_hub/app/bot/handlers/order.py": {
+    "mtime": 1785126337715.5767,
+    "hash": "05f41257ef6a0767f894b06e64990e37"
+  },
+  "C:/shere-folder/course_hub/app/bot/handlers/search.py": {
+    "mtime": 1783851969531.4553,
+    "hash": "c627b4dd44b65c97b9bd9be2b939df18"
+  },
+  "C:/shere-folder/course_hub/app/bot/handlers/start.py": {
+    "mtime": 1783851969532.4536,
+    "hash": "f8899990e702cf9bc28c107a067f21f8"
+  },
+  "C:/shere-folder/course_hub/app/bot/keyboards/__init__.py": {
+    "mtime": 1783851969532.4536,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:/shere-folder/course_hub/app/bot/keyboards/catalog.py": {
+    "mtime": 1785283037559.1597,
+    "hash": "1f13c4c37f912ba341290fc4aa8db2c6"
+  },
+  "C:/shere-folder/course_hub/app/bot/keyboards/language.py": {
+    "mtime": 1783851969534.4526,
+    "hash": "40521ac67d1879c1027942a1b8238958"
+  },
+  "C:/shere-folder/course_hub/app/bot/keyboards/main_menu.py": {
+    "mtime": 1783851969534.4526,
+    "hash": "652627b85a70f0919bd7b7d985fbea8e"
+  },
+  "C:/shere-folder/course_hub/app/bot/messages/__init__.py": {
+    "mtime": 1783851969535.4548,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:/shere-folder/course_hub/app/bot/messages/catalog.py": {
+    "mtime": 1785283037572.1604,
+    "hash": "c202e813865daa92d05bead8de3d05fc"
+  },
+  "C:/shere-folder/course_hub/app/bot/messages/course_formatter.py": {
+    "mtime": 1785356568483.4426,
+    "hash": "36c0234ae643b089f63f29f95d66d2c5"
+  },
+  "C:/shere-folder/course_hub/app/bot/middleware.py": {
+    "mtime": 1783851969537.453,
+    "hash": "dea852a8d6bbbcd640f9cfe38daeafb7"
+  },
+  "C:/shere-folder/course_hub/app/bot/runner.py": {
+    "mtime": 1785284396001.7847,
+    "hash": "066561b5c2d2457ba6118631e6ab9675"
+  },
+  "C:/shere-folder/course_hub/app/bot/states.py": {
+    "mtime": 1783851969538.4531,
+    "hash": "31377baaaf3130f9e3c8d5cd508c5569"
+  },
+  "C:/shere-folder/course_hub/app/container.py": {
+    "mtime": 1783851969539.4536,
+    "hash": "85a91daeff9adaec7a98ddd24da51bdb"
+  },
+  "C:/shere-folder/course_hub/app/core/__init__.py": {
+    "mtime": 1783851969540.4521,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:/shere-folder/course_hub/app/core/config.py": {
+    "mtime": 1785347676864.8354,
+    "hash": "24ddb123f76e5f024b8cddab9b41c551"
+  },
+  "C:/shere-folder/course_hub/app/core/database.py": {
+    "mtime": 1785130454858.0757,
+    "hash": "26f9f35821fbdb8400e2813a861ca16e"
+  },
+  "C:/shere-folder/course_hub/app/core/logging.py": {
+    "mtime": 1785128948114.4155,
+    "hash": "bb9d5fffcd32ef1e3bf420c3e2688eca"
+  },
+  "C:/shere-folder/course_hub/app/domain/__init__.py": {
+    "mtime": 1783851969542.4536,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:/shere-folder/course_hub/app/domain/entities/__init__.py": {
+    "mtime": 1783851969543.4546,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:/shere-folder/course_hub/app/domain/entities/admin_user.py": {
+    "mtime": 1783851969544.452,
+    "hash": "d1a2599cff065ff5eb95859d712d1d8a"
+  },
+  "C:/shere-folder/course_hub/app/domain/entities/bot_settings.py": {
+    "mtime": 1783851969544.452,
+    "hash": "c474f9f3f3622c1a02537f7fdde11071"
+  },
+  "C:/shere-folder/course_hub/app/domain/entities/bot_user.py": {
+    "mtime": 1783851969545.454,
+    "hash": "c0208e5f1a5b07a2e5c1173e823367ca"
+  },
+  "C:/shere-folder/course_hub/app/domain/entities/category.py": {
+    "mtime": 1783851969545.454,
+    "hash": "167bd1f5d85fc32f621349a96efa39fa"
+  },
+  "C:/shere-folder/course_hub/app/domain/entities/category_translation.py": {
+    "mtime": 1783851969546.4539,
+    "hash": "b885eaed1e5ab8225df656c1f3cf662c"
+  },
+  "C:/shere-folder/course_hub/app/domain/entities/course.py": {
+    "mtime": 1783851969546.4539,
+    "hash": "633f8d4c3ac6309b43eda426409800ec"
+  },
+  "C:/shere-folder/course_hub/app/domain/entities/course_translation.py": {
+    "mtime": 1783851969547.4543,
+    "hash": "3d947682fe402d23ad16653418b7bce1"
+  },
+  "C:/shere-folder/course_hub/app/domain/entities/imported_catalog_item.py": {
+    "mtime": 1783851969547.4543,
+    "hash": "d2d08ea8d4a7146c1d81070141128e73"
+  },
+  "C:/shere-folder/course_hub/app/domain/entities/imported_catalog_item_status.py": {
+    "mtime": 1783851969548.4524,
+    "hash": "2553c33afe56eae95db6c3ef5efe8b8a"
+  },
+  "C:/shere-folder/course_hub/app/domain/entities/order.py": {
+    "mtime": 1783851969548.4524,
+    "hash": "43a235fc3a5aac6e78b7a45376d1d6d6"
+  },
+  "C:/shere-folder/course_hub/app/domain/entities/order_status.py": {
+    "mtime": 1783851969549.4531,
+    "hash": "03c88c7880ed181ad97b74dff3ef9c5c"
+  },
+  "C:/shere-folder/course_hub/app/domain/entities/parser_job.py": {
+    "mtime": 1783851969549.4531,
+    "hash": "f12dcd9cd204ed082a12a6ee45936f45"
+  },
+  "C:/shere-folder/course_hub/app/domain/entities/parser_job_status.py": {
+    "mtime": 1783851969550.4553,
+    "hash": "4d3414b9a4c41721579f0ff616b9fe59"
+  },
+  "C:/shere-folder/course_hub/app/domain/entities/parser_source.py": {
+    "mtime": 1783851969550.4553,
+    "hash": "1081373587f536b70413522a199b32be"
+  },
+  "C:/shere-folder/course_hub/app/domain/entities/payment_intent.py": {
+    "mtime": 1783851969551.4526,
+    "hash": "b6311addd7efb44b10d3590551c5747e"
+  },
+  "C:/shere-folder/course_hub/app/domain/entities/payment_settings.py": {
+    "mtime": 1783851969551.4526,
+    "hash": "1c1a3cf065fd64c502479b61873d6ed3"
+  },
+  "C:/shere-folder/course_hub/app/domain/entities/supported_language.py": {
+    "mtime": 1783851969552.4531,
+    "hash": "09add8fb054a70eb84c547b5218aef83"
+  },
+  "C:/shere-folder/course_hub/app/domain/repositories/__init__.py": {
+    "mtime": 1783851969552.4531,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:/shere-folder/course_hub/app/domain/repositories/admin_user_repository.py": {
+    "mtime": 1783851969553.454,
+    "hash": "97a94c967d4df4558dcf823dccb42d09"
+  },
+  "C:/shere-folder/course_hub/app/domain/repositories/bot_settings_repository.py": {
+    "mtime": 1783851969554.4534,
+    "hash": "98cc4fbaa045044d76e51f13302d7dfb"
+  },
+  "C:/shere-folder/course_hub/app/domain/repositories/bot_user_repository.py": {
+    "mtime": 1783851969554.4534,
+    "hash": "9b874ffa42ebbbcb63bf26ee2233d903"
+  },
+  "C:/shere-folder/course_hub/app/domain/repositories/catalog_parser.py": {
+    "mtime": 1783851969555.455,
+    "hash": "6d772b5a1dd6f751d5ec2b89229c5e82"
+  },
+  "C:/shere-folder/course_hub/app/domain/repositories/category_repository.py": {
+    "mtime": 1785283037579.1626,
+    "hash": "f45a021f55a78006f6bd8e575f5d8459"
+  },
+  "C:/shere-folder/course_hub/app/domain/repositories/course_repository.py": {
+    "mtime": 1785283037560.1594,
+    "hash": "c20ece26eace3cf67df906018b991d33"
+  },
+  "C:/shere-folder/course_hub/app/domain/repositories/imported_catalog_item_repository.py": {
+    "mtime": 1783851969557.455,
+    "hash": "567c1629681e99d441d383b42ba729aa"
+  },
+  "C:/shere-folder/course_hub/app/domain/repositories/language_repository.py": {
+    "mtime": 1783851969557.455,
+    "hash": "f6aa28cfa47879412fb345d8539ea12b"
+  },
+  "C:/shere-folder/course_hub/app/domain/repositories/order_repository.py": {
+    "mtime": 1785356592194.1638,
+    "hash": "edb43167489f9c50cd991bfa5aa758a4"
+  },
+  "C:/shere-folder/course_hub/app/domain/repositories/parser_job_repository.py": {
+    "mtime": 1783851969558.4526,
+    "hash": "b203996cd06c7a96d8cf51022e8b8190"
+  },
+  "C:/shere-folder/course_hub/app/domain/repositories/parser_source_repository.py": {
+    "mtime": 1783851969559.4539,
+    "hash": "aac212d7a067dc827cc8af83f4e01282"
+  },
+  "C:/shere-folder/course_hub/app/domain/repositories/payment_gateway.py": {
+    "mtime": 1783851969559.4539,
+    "hash": "6e676aa163d31ee9d93a1dc52cfb57d5"
+  },
+  "C:/shere-folder/course_hub/app/domain/repositories/payment_settings_repository.py": {
+    "mtime": 1785126337717.576,
+    "hash": "deb8b7040ac8f2c9f12d663ddbf8943c"
+  },
+  "C:/shere-folder/course_hub/app/domain/repositories/rate_limiter.py": {
+    "mtime": 1783851969560.454,
+    "hash": "b3c908019b2e0077687b6245f93e7272"
+  },
+  "C:/shere-folder/course_hub/app/domain/repositories/search_repository.py": {
+    "mtime": 1783851969561.4546,
+    "hash": "4e9ccff846c3958069336009437433fd"
+  },
+  "C:/shere-folder/course_hub/app/domain/repositories/suggestion_search_repository.py": {
+    "mtime": 1783851969561.4546,
+    "hash": "bc46871de2e468e009d60317543acdc2"
+  },
+  "C:/shere-folder/course_hub/app/domain/repositories/translation_repository.py": {
+    "mtime": 1783851969562.4534,
+    "hash": "ea451c0893fa6a1806bc3b5c57201320"
+  },
+  "C:/shere-folder/course_hub/app/infrastructure/__init__.py": {
+    "mtime": 1783851969563.454,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:/shere-folder/course_hub/app/infrastructure/db/__init__.py": {
+    "mtime": 1783851969564.4539,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:/shere-folder/course_hub/app/infrastructure/db/base.py": {
+    "mtime": 1783851969564.4539,
+    "hash": "e6e37732b9a33ef4f2efae92b51334bb"
+  },
+  "C:/shere-folder/course_hub/app/infrastructure/db/init_db.py": {
+    "mtime": 1783851969565.4526,
+    "hash": "1c56800a5463adc7f365db26e05b7bd0"
+  },
+  "C:/shere-folder/course_hub/app/infrastructure/db/models/__init__.py": {
+    "mtime": 1783851969566.4534,
+    "hash": "447723c0edcc150b5fc68e9df7dd2c4c"
+  },
+  "C:/shere-folder/course_hub/app/infrastructure/db/models/admin_user.py": {
+    "mtime": 1783851969566.4534,
+    "hash": "7be4d8da24c61b7a0b5d334b15eea92d"
+  },
+  "C:/shere-folder/course_hub/app/infrastructure/db/models/bot_settings.py": {
+    "mtime": 1783851969567.4534,
+    "hash": "fa334d0b93bf7aab91666f1e3a05a546"
+  },
+  "C:/shere-folder/course_hub/app/infrastructure/db/models/bot_user.py": {
+    "mtime": 1783851969567.4534,
+    "hash": "546d3867a6931fa4f410532cdf73face"
+  },
+  "C:/shere-folder/course_hub/app/infrastructure/db/models/category.py": {
+    "mtime": 1783851969568.4539,
+    "hash": "ba719253cc0170ccf260c885e6d5da79"
+  },
+  "C:/shere-folder/course_hub/app/infrastructure/db/models/category_translation.py": {
+    "mtime": 1783851969569.451,
+    "hash": "17855fd23a7d15fdc1003f6ee4f2cb46"
+  },
+  "C:/shere-folder/course_hub/app/infrastructure/db/models/course.py": {
+    "mtime": 1783851969569.451,
+    "hash": "cc85d60e8ccc4f289009c46ceb28a4ab"
+  },
+  "C:/shere-folder/course_hub/app/infrastructure/db/models/course_translation.py": {
+    "mtime": 1783851969570.453,
+    "hash": "b20f580e7ca184d40352bbda1fc73ac3"
+  },
+  "C:/shere-folder/course_hub/app/infrastructure/db/models/imported_catalog_item.py": {
+    "mtime": 1783851969570.453,
+    "hash": "50659f0864161f449fe8dcb587e2c272"
+  },
+  "C:/shere-folder/course_hub/app/infrastructure/db/models/order.py": {
+    "mtime": 1783851969571.4546,
+    "hash": "2e7aa2d73517807a336a1b6844aa1124"
+  },
+  "C:/shere-folder/course_hub/app/infrastructure/db/models/parser_job.py": {
+    "mtime": 1783851969571.4546,
+    "hash": "007d3c710c1cef4ad6f6a2a745fb142b"
+  },
+  "C:/shere-folder/course_hub/app/infrastructure/db/models/parser_source.py": {
+    "mtime": 1783851969572.4531,
+    "hash": "bf82c00dcb5367dfbbe14d34694c55e6"
+  },
+  "C:/shere-folder/course_hub/app/infrastructure/db/models/payment_settings.py": {
+    "mtime": 1785126337718.5767,
+    "hash": "79bff673703e0299fc339f1fc2902fad"
+  },
+  "C:/shere-folder/course_hub/app/infrastructure/db/models/supported_language.py": {
+    "mtime": 1783851969573.4531,
+    "hash": "91cf9fbde9439fc14c28259870668fed"
+  },
+  "C:/shere-folder/course_hub/app/infrastructure/db/repositories/__init__.py": {
+    "mtime": 1783851969573.4531,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:/shere-folder/course_hub/app/infrastructure/db/repositories/bot_user_repository.py": {
+    "mtime": 1783851969574.453,
+    "hash": "b208c986034e14fe87716769e316529f"
+  },
+  "C:/shere-folder/course_hub/app/infrastructure/db/repositories/category_repository.py": {
+    "mtime": 1785283037579.1626,
+    "hash": "703637c06bdc595eeb9047590759c0cb"
+  },
+  "C:/shere-folder/course_hub/app/infrastructure/db/repositories/course_repository.py": {
+    "mtime": 1785356582471.3674,
+    "hash": "902cde8cf9271eb19f6bf01c9c99bf09"
+  },
+  "C:/shere-folder/course_hub/app/infrastructure/db/repositories/imported_catalog_item_repository.py": {
+    "mtime": 1783851969576.4526,
+    "hash": "5583073aacf93aeaad891ebf6bfdd5fb"
+  },
+  "C:/shere-folder/course_hub/app/infrastructure/db/repositories/language_repository.py": {
+    "mtime": 1783851969576.4526,
+    "hash": "925b8fb5a6b52432eaae356803e0db26"
+  },
+  "C:/shere-folder/course_hub/app/infrastructure/db/repositories/order_repository.py": {
+    "mtime": 1785356605777.909,
+    "hash": "cfb1dc3a5beb3110b8503d2b36ba2ad4"
+  },
+  "C:/shere-folder/course_hub/app/infrastructure/db/repositories/parser_job_repository.py": {
+    "mtime": 1783851969579.4548,
+    "hash": "84a43bdd08be17a18d9f18619e35e2d7"
+  },
+  "C:/shere-folder/course_hub/app/infrastructure/db/repositories/parser_source_repository.py": {
+    "mtime": 1783851969579.4548,
+    "hash": "292e84c43551b853fdb5ec886bcd188e"
+  },
+  "C:/shere-folder/course_hub/app/infrastructure/db/repositories/translation_repository.py": {
+    "mtime": 1783851969580.453,
+    "hash": "b9db479f4b970bcb09a6c6cef94e4630"
+  },
+  "C:/shere-folder/course_hub/app/infrastructure/db/search/__init__.py": {
+    "mtime": 1783851969581.4746,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:/shere-folder/course_hub/app/infrastructure/db/search/fts5_search_repository.py": {
+    "mtime": 1783851969581.4746,
+    "hash": "7416f00745c6816503cb8d01d7bec87e"
+  },
+  "C:/shere-folder/course_hub/app/infrastructure/db/search/like_search_repository.py": {
+    "mtime": 1783851969582.4521,
+    "hash": "3fdc8ae3407d30b495ef4098c8fd8b73"
+  },
+  "C:/shere-folder/course_hub/app/infrastructure/db/search/localized_suggestion_search_repository.py": {
+    "mtime": 1783851969583.4548,
+    "hash": "119297fa332eea24ce131ba592ed2fa0"
+  },
+  "C:/shere-folder/course_hub/app/infrastructure/email/__init__.py": {
+    "mtime": 1785283037578.1619,
+    "hash": "81051bcc2cf1bedf378224b0a93e2877"
+  },
+  "C:/shere-folder/course_hub/app/infrastructure/email/smtp_mailer.py": {
+    "mtime": 1785283037562.159,
+    "hash": "6ed6d1f49617f4edd5188f4a48327f64"
+  },
+  "C:/shere-folder/course_hub/app/infrastructure/parsers/__init__.py": {
+    "mtime": 1783851969583.4548,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:/shere-folder/course_hub/app/infrastructure/parsers/catalog_parser.py": {
+    "mtime": 1783851969584.455,
+    "hash": "0e249177784b08cf0149d9b8ba8d3c4f"
+  },
+  "C:/shere-folder/course_hub/app/infrastructure/payments/__init__.py": {
+    "mtime": 1783851969626.474,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:/shere-folder/course_hub/app/infrastructure/payments/atlos_gateway.py": {
+    "mtime": 1785268549724.3374,
+    "hash": "e97afae06bd705346ccd150b5fd90360"
+  },
+  "C:/shere-folder/course_hub/app/infrastructure/payments/gateway_factory.py": {
+    "mtime": 1785126337719.5762,
+    "hash": "ad4eaefccd85dd78aebd4ec33e6dba63"
+  },
+  "C:/shere-folder/course_hub/app/infrastructure/payments/lava_gateway.py": {
+    "mtime": 1783851969628.4739,
+    "hash": "022d0bafbc8c3d8ead4c514a82f2dfb2"
+  },
+  "C:/shere-folder/course_hub/app/infrastructure/payments/lava_helpers.py": {
+    "mtime": 1783851969629.476,
+    "hash": "0496b0ff10572fca01e13eaf1388d673"
+  },
+  "C:/shere-folder/course_hub/app/infrastructure/payments/simulated_gateway.py": {
+    "mtime": 1783851969629.476,
+    "hash": "6c21060b63bf7167e916dc657011126c"
+  },
+  "C:/shere-folder/course_hub/app/infrastructure/ratelimit/__init__.py": {
+    "mtime": 1783851969631.4524,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:/shere-folder/course_hub/app/infrastructure/ratelimit/in_memory_rate_limiter.py": {
+    "mtime": 1783851969631.4524,
+    "hash": "3d529a709251a2ff89223093099c133f"
+  },
+  "C:/shere-folder/course_hub/app/infrastructure/security/__init__.py": {
+    "mtime": 1783851969632.451,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:/shere-folder/course_hub/app/infrastructure/settings_store/__init__.py": {
+    "mtime": 1783851969633.4958,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:/shere-folder/course_hub/app/infrastructure/settings_store/admin_user_repository.py": {
+    "mtime": 1783851969633.4958,
+    "hash": "0c52743911c5f0aead93f129ac78e3cb"
+  },
+  "C:/shere-folder/course_hub/app/infrastructure/settings_store/bot_settings_repository.py": {
+    "mtime": 1783851969634.4524,
+    "hash": "b50f04ed43e7ff0e0670062addeef84b"
+  },
+  "C:/shere-folder/course_hub/app/infrastructure/settings_store/payment_settings_repository.py": {
+    "mtime": 1785126337720.5767,
+    "hash": "80e91bc06f8dccba5741d036d9248f94"
+  },
+  "C:/shere-folder/course_hub/app/main.py": {
+    "mtime": 1785135563659.8745,
+    "hash": "bd9b50bf8c333ad72dcb34329953e1c0"
+  },
+  "C:/shere-folder/course_hub/app/seed.py": {
+    "mtime": 1783851969636.453,
+    "hash": "522f34b4434746d9fa52281a931129bc"
+  },
+  "C:/shere-folder/course_hub/scripts/catalog_pipeline.py": {
+    "mtime": 1785354481288.382,
+    "hash": "f6a938e3358cd44cd98b5ad4ac0798f4"
+  },
+  "C:/shere-folder/course_hub/scripts/create_pyrogram_session.py": {
+    "mtime": 1785286024026.0425,
+    "hash": "20dbfcf6581cfe7e8bfc8aa036e252ea"
+  },
+  "C:/shere-folder/course_hub/scripts/deploy_with_env_vercel.py": {
+    "mtime": 1785268549724.3374,
+    "hash": "334d710deb1970477b7d4f5b7a13358c"
+  },
+  "C:/shere-folder/course_hub/scripts/sync-vercel-env.ps1": {
+    "mtime": 1785268549724.3374,
+    "hash": "24073bc6b50f425a5e37d700e39b5764"
+  },
+  "C:/shere-folder/course_hub/tests/__init__.py": {
+    "mtime": 1783851969663.452,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:/shere-folder/course_hub/tests/conftest.py": {
+    "mtime": 1785125567771.8228,
+    "hash": "4be0d65c1a54a1784e6b40022129599c"
+  },
+  "C:/shere-folder/course_hub/tests/integration/__init__.py": {
+    "mtime": 1783851969665.453,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:/shere-folder/course_hub/tests/integration/test_admin.py": {
+    "mtime": 1783851969665.453,
+    "hash": "fba9a1c82e93e4cfd90340c2016162f4"
+  },
+  "C:/shere-folder/course_hub/tests/integration/test_bot_course_display.py": {
+    "mtime": 1783851969666.4524,
+    "hash": "95a8ae78ece8ca6d176e700dfefa7530"
+  },
+  "C:/shere-folder/course_hub/tests/integration/test_bot_language.py": {
+    "mtime": 1785356731702.5376,
+    "hash": "36681a961e2be2b010d71f91d7218b6d"
+  },
+  "C:/shere-folder/course_hub/tests/integration/test_bot_localized_catalog.py": {
+    "mtime": 1783851969667.4524,
+    "hash": "25f9bc02ddeae4b485e3a176cf808685"
+  },
+  "C:/shere-folder/course_hub/tests/integration/test_bot_search_suggestions.py": {
+    "mtime": 1783851969668.4517,
+    "hash": "2830ebe9db833f14e1655fde4241e980"
+  },
+  "C:/shere-folder/course_hub/tests/integration/test_categories.py": {
+    "mtime": 1785356242764.8276,
+    "hash": "e5ed9f59b3f3b0e8509359c012452e3c"
+  },
+  "C:/shere-folder/course_hub/tests/integration/test_health.py": {
+    "mtime": 1783851969669.453,
+    "hash": "7bedcd4c0a8b6c838934834554fd6c79"
+  },
+  "C:/shere-folder/course_hub/tests/integration/test_imported_catalog_review.py": {
+    "mtime": 1783851969670.4521,
+    "hash": "f0dbbc90aa4cd572a87544214ddf812d"
+  },
+  "C:/shere-folder/course_hub/tests/integration/test_lava_payments.py": {
+    "mtime": 1783851969670.4521,
+    "hash": "e62f29336b9de15272cdbf1e139bbd2b"
+  },
+  "C:/shere-folder/course_hub/tests/integration/test_localized_catalog.py": {
+    "mtime": 1783851969671.452,
+    "hash": "05b9b73c930aa24ed0f37c99250ac29c"
+  },
+  "C:/shere-folder/course_hub/tests/integration/test_localized_orders.py": {
+    "mtime": 1783851969671.452,
+    "hash": "c5d2c1eb5796dc305a832bbd451dc46d"
+  },
+  "C:/shere-folder/course_hub/tests/integration/test_orders.py": {
+    "mtime": 1785356252819.7424,
+    "hash": "5f7ebf28da55b4a31aed17022f379976"
+  },
+  "C:/shere-folder/course_hub/tests/integration/test_parser_jobs.py": {
+    "mtime": 1783851969672.4524,
+    "hash": "29d4c47079008983890dbf4fe20bdb8b"
+  },
+  "C:/shere-folder/course_hub/tests/integration/test_payments.py": {
+    "mtime": 1783851969673.4514,
+    "hash": "1b03629223841611406aa6be644177aa"
+  },
+  "C:/shere-folder/course_hub/tests/integration/test_search.py": {
+    "mtime": 1783851969673.4514,
+    "hash": "2b6cd3b47554993834dd6897de097013"
+  },
+  "C:/shere-folder/course_hub/tests/integration/test_search_suggestions.py": {
+    "mtime": 1783851969674.451,
+    "hash": "3134fb1e9605bd1d3ace1d6b97c82032"
+  },
+  "C:/shere-folder/course_hub/tests/unit/__init__.py": {
+    "mtime": 1783851969675.4517,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:/shere-folder/course_hub/tests/unit/test_catalog_localization.py": {
+    "mtime": 1785356238832.5679,
+    "hash": "2cfba9d0cc25aba1592adcf20f97397d"
+  },
+  "C:/shere-folder/course_hub/tests/unit/test_catalog_parser.py": {
+    "mtime": 1783851969676.4546,
+    "hash": "f58ab72cba9171d0b58eea559f0d181b"
+  },
+  "C:/shere-folder/course_hub/tests/unit/test_localization_service.py": {
+    "mtime": 1783851969676.4546,
+    "hash": "69b0e7a82e5022d892b2894761f1ea19"
+  },
+  "C:/shere-folder/course_hub/tests/unit/test_parser_dedupe.py": {
+    "mtime": 1783851969677.4526,
+    "hash": "7162e93edc977411d248675ff618f800"
+  },
+  "C:/shere-folder/course_hub/tests/unit/test_rate_limiter.py": {
+    "mtime": 1783851969677.4526,
+    "hash": "ca17efdca9f3a75ab7b3f02e2a077777"
+  },
+  "C:/shere-folder/course_hub/tests/unit/test_suggestion_search.py": {
+    "mtime": 1783851969678.4514,
+    "hash": "e492eb0c97a14828e2b90067d663d596"
+  },
+  "C:/shere-folder/course_hub/tests/unit/test_telegram_course_formatter.py": {
+    "mtime": 1785356229968.6655,
+    "hash": "2c974bb1f955afdb8b0fa75203b52242"
+  },
+  "C:/shere-folder/course_hub/tools/catalog/ai/__init__.py": {
+    "mtime": 1785284341994.922,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:/shere-folder/course_hub/tools/catalog/ai/aws.py": {
+    "mtime": 1785284405448.9448,
+    "hash": "827204a585fc086b2eae3d4035a0d7ab"
+  },
+  "C:/shere-folder/course_hub/tools/catalog/ai/base.py": {
+    "mtime": 1785284328135.532,
+    "hash": "bd89a88996faa876171deb071869b9b4"
+  },
+  "C:/shere-folder/course_hub/tools/catalog/ai/factory.py": {
+    "mtime": 1785346836771.8103,
+    "hash": "7cbcf2c652bb4c7369b7113f5304760e"
+  },
+  "C:/shere-folder/course_hub/tools/catalog/ai/nvidia.py": {
+    "mtime": 1785284334963.025,
+    "hash": "836b01e25f87a82cccea1f39d57973fd"
+  },
+  "C:/shere-folder/course_hub/tools/catalog/ai/openai_compat.py": {
+    "mtime": 1785284328279.539,
+    "hash": "7a9685d45af6d9222ae3e0698fa66b84"
+  },
+  "C:/shere-folder/course_hub/tools/catalog/ai/openrouter.py": {
+    "mtime": 1785284339371.1868,
+    "hash": "836b01e25f87a82cccea1f39d57973fd"
+  },
+  "C:/shere-folder/course_hub/tools/catalog/ai/perplexity.py": {
+    "mtime": 1785346836770.8142,
+    "hash": "836b01e25f87a82cccea1f39d57973fd"
+  },
+  "C:/shere-folder/course_hub/tools/catalog/config.py": {
+    "mtime": 1785346836769.8132,
+    "hash": "78f68338b80259c6cb26b8c2b2d654ec"
+  },
+  "C:/shere-folder/course_hub/tools/catalog/course_json.py": {
+    "mtime": 1785347267589.1997,
+    "hash": "6d53c216e481ada6428d10cb115e64a0"
+  },
+  "C:/shere-folder/course_hub/tools/catalog/create_channel.py": {
+    "mtime": 1785284407047.024,
+    "hash": "b65175527b8372d68de7b1d2c63e0d2c"
+  },
+  "C:/shere-folder/course_hub/tools/catalog/enrich.py": {
+    "mtime": 1785348445352.7134,
+    "hash": "2fb0760bd86a8dc3f89e80c10ccd0b58"
+  },
+  "C:/shere-folder/course_hub/tools/catalog/normalize.py": {
+    "mtime": 1785348114446.7495,
+    "hash": "f3576cdcf9fdd25db01a12fc577b9752"
+  },
+  "C:/shere-folder/course_hub/tools/catalog/parsers/__init__.py": {
+    "mtime": 1785284364348.655,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:/shere-folder/course_hub/tools/catalog/parsers/flancki_pyrogram.py": {
+    "mtime": 1785284360011.5037,
+    "hash": "58443a76f33ece942cdd841d32b239c3"
+  },
+  "C:/shere-folder/course_hub/tools/catalog/post_channel.py": {
+    "mtime": 1785347363712.6873,
+    "hash": "b1b19bc6daf1651e126ade8245ebf69a"
+  },
+  "C:/shere-folder/course_hub/tools/catalog/run_pipeline.py": {
+    "mtime": 1785347392962.245,
+    "hash": "bf4716f6b3b4bd18173ba13331d93216"
+  },
+  "C:/shere-folder/course_hub/tools/catalog/sync_db.py": {
+    "mtime": 1785354481182.3591,
+    "hash": "68ce2d7107b388f64192e5ff53acc493"
+  },
+  "C:/shere-folder/course_hub/CLAUDE.md": {
+    "mtime": 1783852506172.2314,
+    "hash": "403878e9c50cc2f19acb54f95a75370c"
+  },
+  "C:/shere-folder/course_hub/README.md": {
+    "mtime": 1785285825623.1665,
+    "hash": "5d42dd1cdf97723c0e60e46283d6dac4"
+  },
+  "C:/shere-folder/course_hub/docker-compose.yml": {
+    "mtime": 1783852125676.692,
+    "hash": "8629060c9febb0e9ec9c09319dc05b71"
+  },
+  "C:/shere-folder/course_hub/docs/superpowers/plans/2026-07-27-telegram-webhook-mode.md": {
+    "mtime": 1785117421562.1416,
+    "hash": "e5c7e75185366161d23bd708d873ccd0"
+  },
+  "C:/shere-folder/course_hub/docs/superpowers/plans/2026-07-28-local-catalog-toolbox.md": {
+    "mtime": 1785268947417.4832,
+    "hash": "ac441e1e551f424866dd76eb855108d4"
+  },
+  "C:/shere-folder/course_hub/docs/superpowers/specs/2026-07-27-telegram-webhook-mode-design.md": {
+    "mtime": 1785117213033.852,
+    "hash": "24c5797e466c7eda731a76a4b74ec1f3"
+  },
+  "C:/shere-folder/course_hub/docs/superpowers/specs/2026-07-28-local-catalog-toolbox-design.md": {
+    "mtime": 1785283037572.1604,
+    "hash": "ee54c3f5d2f19b7b2c26d84c4ae5d4db"
+  },
+  "C:/shere-folder/course_hub/docs/superpowers/specs/2026-07-29-catalog-pipeline-ai-enrich-design.md": {
+    "mtime": 1785284418225.8035,
+    "hash": "f98787021d6fe84ad75df001b5e8efff"
+  },
+  "C:/shere-folder/course_hub/requirements.txt": {
+    "mtime": 1785125567768.8228,
+    "hash": "9719ec8eec3550306502906e97e02b40"
+  },
+  "C:/shere-folder/course_hub/specs/001-fastapi-telegram-bot/checklists/requirements.md": {
+    "mtime": 1783851969641.475,
+    "hash": "e62ac02b07c69356de8f2e468467fe00"
+  },
+  "C:/shere-folder/course_hub/specs/001-fastapi-telegram-bot/contracts/bot-commands.md": {
+    "mtime": 1783851969643.455,
+    "hash": "d203f69bb3f3d298d425065b28b21812"
+  },
+  "C:/shere-folder/course_hub/specs/001-fastapi-telegram-bot/contracts/http-api.md": {
+    "mtime": 1783851969643.455,
+    "hash": "23e8bc5a138da409a9db50cff559ea39"
+  },
+  "C:/shere-folder/course_hub/specs/001-fastapi-telegram-bot/contracts/payment-webhook.md": {
+    "mtime": 1783851969644.4534,
+    "hash": "00e189f76d8e29f46beb1256907944b9"
+  },
+  "C:/shere-folder/course_hub/specs/001-fastapi-telegram-bot/data-model.md": {
+    "mtime": 1783851969645.4521,
+    "hash": "a016b3f6c9b3f9e9522c47d0473fd18e"
+  },
+  "C:/shere-folder/course_hub/specs/001-fastapi-telegram-bot/plan.md": {
+    "mtime": 1783851969646.4746,
+    "hash": "8df593f96697cffde41241d5a925f5d6"
+  },
+  "C:/shere-folder/course_hub/specs/001-fastapi-telegram-bot/quickstart.md": {
+    "mtime": 1783851969646.4746,
+    "hash": "237d04ca2ac54ea44388ce2e15c840dc"
+  },
+  "C:/shere-folder/course_hub/specs/001-fastapi-telegram-bot/research.md": {
+    "mtime": 1783851969647.4524,
+    "hash": "78e4314e85fcd27b0f1cc543542a4325"
+  },
+  "C:/shere-folder/course_hub/specs/001-fastapi-telegram-bot/spec.md": {
+    "mtime": 1783851969648.4524,
+    "hash": "20b258134fbff6028e3460d0a9db5702"
+  },
+  "C:/shere-folder/course_hub/specs/001-fastapi-telegram-bot/tasks.md": {
+    "mtime": 1783851969648.4524,
+    "hash": "c9c02c8a1f51a2d9ba8ba33568cfddd2"
+  },
+  "C:/shere-folder/course_hub/specs/002-multilingual-search/checklists/requirements.md": {
+    "mtime": 1783851969650.4502,
+    "hash": "39afeea78aff030b0887dd3426590df4"
+  },
+  "C:/shere-folder/course_hub/specs/002-multilingual-search/contracts/bot-interactions.md": {
+    "mtime": 1783851969650.4502,
+    "hash": "e62bd889d8e61b49846203e7e683af8f"
+  },
+  "C:/shere-folder/course_hub/specs/002-multilingual-search/contracts/http-api.md": {
+    "mtime": 1783851969651.453,
+    "hash": "eba2b01ad52090d476b85db7f4f003f9"
+  },
+  "C:/shere-folder/course_hub/specs/002-multilingual-search/contracts/parser-source.md": {
+    "mtime": 1783851969651.453,
+    "hash": "0a39b8bb2ebbd5f3534425e3ad4ab86c"
+  },
+  "C:/shere-folder/course_hub/specs/002-multilingual-search/data-model.md": {
+    "mtime": 1783851969652.4521,
+    "hash": "3d6eaec00ecf6b5d871bd2cfd54c5c04"
+  },
+  "C:/shere-folder/course_hub/specs/002-multilingual-search/plan.md": {
+    "mtime": 1783851969653.4526,
+    "hash": "ca2dc09479141222335b042eff0cd1db"
+  },
+  "C:/shere-folder/course_hub/specs/002-multilingual-search/quickstart.md": {
+    "mtime": 1783851969654.451,
+    "hash": "32201ecc4b1555d25d632162a8764ada"
+  },
+  "C:/shere-folder/course_hub/specs/002-multilingual-search/research.md": {
+    "mtime": 1783851969654.451,
+    "hash": "41bee7f5127b67ad1d237d382e7edbe4"
+  },
+  "C:/shere-folder/course_hub/specs/002-multilingual-search/spec.md": {
+    "mtime": 1783851969655.4524,
+    "hash": "45510c2bc6128e3f35845edf2f688440"
+  },
+  "C:/shere-folder/course_hub/specs/002-multilingual-search/tasks.md": {
+    "mtime": 1783851969656.4521,
+    "hash": "63d9a60c0752ccfb0c95bd310aaae341"
+  },
+  "C:/shere-folder/course_hub/specs/003-lava-payments/checklists/requirements.md": {
+    "mtime": 1783851969658.4534,
+    "hash": "73d0cbdf9b80d19627b7e05517d79823"
+  },
+  "C:/shere-folder/course_hub/specs/003-lava-payments/contracts/lava-webhook.md": {
+    "mtime": 1783851969658.4534,
+    "hash": "8b5b4519aa987d98c004efd5fc9486fd"
+  },
+  "C:/shere-folder/course_hub/specs/003-lava-payments/contracts/payment-gateway.md": {
+    "mtime": 1783851969659.4543,
+    "hash": "e039ad455889c0d14cc99b9f3a2cf55e"
+  },
+  "C:/shere-folder/course_hub/specs/003-lava-payments/data-model.md": {
+    "mtime": 1783851969660.4526,
+    "hash": "7f2616312bbd7a260441ea2fc966aad0"
+  },
+  "C:/shere-folder/course_hub/specs/003-lava-payments/plan.md": {
+    "mtime": 1783851969660.4526,
+    "hash": "e3911793046db9fa8d15805e192169f5"
+  },
+  "C:/shere-folder/course_hub/specs/003-lava-payments/quickstart.md": {
+    "mtime": 1783851969661.4514,
+    "hash": "5cb26c4866edb86ee125ad0d5deac509"
+  },
+  "C:/shere-folder/course_hub/specs/003-lava-payments/research.md": {
+    "mtime": 1783851969661.4514,
+    "hash": "943a71d0e6f26bf3bd4e010e04649a92"
+  },
+  "C:/shere-folder/course_hub/specs/003-lava-payments/spec.md": {
+    "mtime": 1783851969662.4524,
+    "hash": "517a2aaa37063527f40dd28e716a112c"
+  },
+  "C:/shere-folder/course_hub/specs/003-lava-payments/tasks.md": {
+    "mtime": 1783851969663.452,
+    "hash": "bd6ead36babecf09f089895f43d2a3fb"
+  },
+  "C:/shere-folder/course_hub/tools/catalog/requirements.txt": {
+    "mtime": 1785286726431.7205,
+    "hash": "2707b87e57f3fa2b43419dbdf655ca6a"
+  }
+}

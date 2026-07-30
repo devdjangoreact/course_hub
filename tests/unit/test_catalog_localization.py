@@ -19,6 +19,11 @@ class FakeCategoryRepository(CategoryRepository):
     async def get(self, category_id: int) -> Category | None:
         return Category(id=category_id, name="Programming")
 
+    async def get_by_name(self, name: str) -> Category | None:
+        if name == "Programming":
+            return Category(id=1, name="Programming")
+        return None
+
     async def add(self, category: Category) -> Category:
         return category
 
@@ -49,7 +54,23 @@ class FakeCourseRepository(CourseRepository):
     async def get(self, course_id: int) -> Course | None:
         return await self.get_active(course_id)
 
+    async def get_by_catalog_slug(self, slug: str) -> Course | None:
+        if slug != "async-fastapi":
+            return None
+        return Course(
+            id=2,
+            name="Async FastAPI",
+            description="Build async APIs.",
+            category_id=1,
+            price=Decimal("79.00"),
+            link="https://example.com/fastapi",
+            extra={"catalog_slug": slug},
+        )
+
     async def add(self, course: Course) -> Course:
+        return course
+
+    async def update(self, course: Course) -> Course:
         return course
 
 
@@ -109,3 +130,15 @@ async def test_localized_courses_fall_back_to_base_content() -> None:
 
     assert courses[0].name == "Async FastAPI"
     assert courses[0].fallback_used is True
+
+
+@pytest.mark.asyncio
+async def test_localized_course_can_be_loaded_by_catalog_slug() -> None:
+    service = CatalogService(
+        FakeCategoryRepository(), FakeCourseRepository(), FakeTranslationRepository()
+    )
+
+    course = await service.get_localized_course_by_catalog_slug("async-fastapi", "uk")
+
+    assert course.id == 2
+    assert course.extra["catalog_slug"] == "async-fastapi"

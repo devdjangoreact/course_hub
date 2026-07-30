@@ -4,7 +4,7 @@
 
 **Created**: 2026-06-17
 
-**Status**: Draft
+**Status**: Completed
 
 **Input**: User description: "Integrate lava.top payment service (https://developers.lava.top/) for accepting course purchase payments in Course Hub."
 

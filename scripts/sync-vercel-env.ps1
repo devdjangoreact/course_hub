@@ -22,7 +22,13 @@ $skipKeys = @(
     "PORT",
     "VERCEL_TOKEN",
     "VERCEL_ORG_ID",
-    "VERCEL_PROJECT_ID"
+    "VERCEL_PROJECT_ID",
+    "CLOUDFLARE_API_TOKEN",
+    "CLOUDFLARE_ACCOUNT_ID",
+    "CLOUDFLARE_EMAIL",
+    "CLOUDFLARE_ZONE_ID",
+    "CUSTOM_DOMAIN",
+    "CUSTOM_DOMAIN_WWW"
 )
 
 function Get-EnvPairs([string]$path) {
