@@ -15,6 +15,7 @@ from app.infrastructure.settings_store.payment_settings_repository import (
 )
 
 _LANGUAGE_NAMES = {
+    "ru": ("Russian", "Русский"),
     "uk": ("Ukrainian", "Українська"),
     "en": ("English", "English"),
 }

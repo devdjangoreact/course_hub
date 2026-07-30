@@ -8,7 +8,7 @@ from app.infrastructure.db.base import Base
 # Columns added after initial deploy; SQLite create_all does not alter existing tables.
 _SQLITE_COLUMN_PATCHES: dict[str, dict[str, str]] = {
     "bot_users": {
-        "preferred_language": "VARCHAR NOT NULL DEFAULT 'uk'",
+        "preferred_language": "VARCHAR NOT NULL DEFAULT 'ru'",
     },
     "bot_settings": {
         "app_env": "VARCHAR NOT NULL DEFAULT 'development'",

@@ -1,6 +1,56 @@
-DEFAULT_LANGUAGE = "uk"
+DEFAULT_LANGUAGE = "ru"
 
 _MESSAGES: dict[str, dict[str, str]] = {
+    "ru": {
+        "choose_language": "Выберите язык интерфейса:",
+        "language_saved": "Язык сохранён.",
+        "welcome": "Добро пожаловать в Course Hub! Выберите категорию или поиск.",
+        "categories": "Категории",
+        "search": "Поиск",
+        "language": "Язык",
+        "search_prompt": "Отправьте поисковый запрос:",
+        "search_too_short": "Введите не менее 3 символов.",
+        "search_rate_limited": "Слишком много запросов. Попробуйте немного позже.",
+        "search_no_results": "Ничего не найдено. Попробуйте другой запрос.",
+        "search_results": "Выберите результат:",
+        "course_category": "Категория",
+        "course_price": "Цена",
+        "course_link": "Ссылка",
+        "order": "Заказать",
+        "back": "Назад",
+        "menu": "Меню",
+        "pay_here": "Оплатить здесь",
+        "order_created": "Заказ создан",
+        "course_not_found": "Курс не найден.",
+        "payment_status": "Статус оплаты заказа",
+        "payment_email_prompt": "Введите email для оплаты через lava.top:",
+        "payment_email_invalid": "Некорректный email. Попробуйте ещё раз.",
+        "payment_email_confirm": (
+            "Сохранённый email: <code>{email}</code>\n\nИспользовать его для оплаты?"
+        ),
+        "payment_email_use": "Да, использовать",
+        "payment_email_change": "Другой email",
+        "order_payment_summary": (
+            "<b>Заказ #{order_id}</b>\n\n"
+            "Товар: {course_name}\n"
+            "Категория: {category_name}\n"
+            "Сервис оплаты: {payment_service}\n"
+            "Сумма: {amount} {currency}\n\n"
+            "Нажмите «Оплатить» ниже."
+        ),
+        "payment_provider_lava": "lava.top",
+        "payment_provider_atlos": "atlos.io",
+        "payment_provider_simulated": "Тестовая оплата",
+        "pay_button": "Оплатить",
+        "promo_materials": "Рекламные материалы",
+        "promo_email_button": "Реклама на email",
+        "promo_unavailable": "Рекламные материалы временно недоступны.",
+        "promo_email_sent": "Рекламное описание отправлено на email.",
+        "promo_email_missing": "Сначала сохраните email при оформлении заказа.",
+        "download_ready": "Ссылка для скачивания",
+        "download_missing": "Ссылка для скачивания ещё не настроена. Обратитесь в поддержку.",
+        "invite_line": "Доступ к каналу",
+    },
     "uk": {
         "choose_language": "Оберіть мову інтерфейсу:",
         "language_saved": "Мову збережено.",

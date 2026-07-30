@@ -8,5 +8,5 @@ class BotUser:
     telegram_id: int
     username: str | None = None
     full_name: str | None = None
-    preferred_language: str = "uk"
+    preferred_language: str = "ru"
     extra: dict[str, Any] = field(default_factory=dict)

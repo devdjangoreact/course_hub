@@ -39,8 +39,8 @@ To apply changes, restart the application if modifying the `BOT_TOKEN` or `ADMIN
 Multilingual defaults (seeded from `.env`):
 
 ```text
-SUPPORTED_LANGUAGES=uk,en
-DEFAULT_LANGUAGE=uk
+SUPPORTED_LANGUAGES=ru,uk,en
+DEFAULT_LANGUAGE=ru
 SEARCH_SUGGESTION_MIN_CHARS=3
 SEARCH_SUGGESTION_LIMIT=5
 PARSER_REQUEST_TIMEOUT_SECONDS=10

@@ -61,7 +61,7 @@ class OrderService:
                 telegram_id=telegram_id,
                 username=username,
                 full_name=full_name,
-                preferred_language=existing_user.preferred_language if existing_user else "uk",
+                preferred_language=existing_user.preferred_language if existing_user else "ru",
                 extra=existing_user.extra if existing_user else {},
             )
         )

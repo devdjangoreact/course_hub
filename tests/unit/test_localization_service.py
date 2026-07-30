@@ -8,11 +8,16 @@ from app.domain.repositories.language_repository import LanguageRepository
 class FakeLanguageRepository(LanguageRepository):
     def __init__(self) -> None:
         self._languages = {
+            "ru": SupportedLanguage(
+                code="ru",
+                name="Russian",
+                native_name="Русский",
+                is_default=True,
+            ),
             "uk": SupportedLanguage(
                 code="uk",
                 name="Ukrainian",
                 native_name="Українська",
-                is_default=True,
             ),
             "en": SupportedLanguage(code="en", name="English", native_name="English"),
         }
@@ -24,7 +29,7 @@ class FakeLanguageRepository(LanguageRepository):
         return self._languages.get(code)
 
     async def get_default(self) -> SupportedLanguage:
-        return self._languages["uk"]
+        return self._languages["ru"]
 
     async def add(self, language: SupportedLanguage) -> SupportedLanguage:
         self._languages[language.code] = language
@@ -42,5 +47,5 @@ async def test_resolve_supported_language() -> None:
 async def test_resolve_language_falls_back_to_default() -> None:
     service = LocalizationService(FakeLanguageRepository())
 
-    assert await service.resolve_language("de") == "uk"
-    assert await service.resolve_language(None) == "uk"
+    assert await service.resolve_language("de") == "ru"
+    assert await service.resolve_language(None) == "ru"

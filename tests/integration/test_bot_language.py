@@ -95,7 +95,7 @@ async def test_new_user_is_asked_to_choose_language() -> None:
 
     await handle_start(message, bot_users, localization)
 
-    assert message.answers == ["Оберіть мову інтерфейсу:"]
+    assert message.answers == ["Выберите язык интерфейса:"]
 
 
 @pytest.mark.asyncio
@@ -130,7 +130,7 @@ async def test_course_deep_link_shows_order_without_download_for_unpaid_user() -
     assert "Stable Course" in combined
     assert "https://t.me/+catalog" in combined
     assert "https://download.example/course" not in combined
-    assert message.markups[0].inline_keyboard[0][0].text == "Замовити"
+    assert message.markups[0].inline_keyboard[0][0].text == "Заказать"
 
 
 @pytest.mark.asyncio

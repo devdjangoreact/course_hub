@@ -180,7 +180,7 @@ class AppSettingsAdmin(ModelView, model=BotSettingsModel):
         },
         "extra": {
             "description": (
-                'JSON options, e.g. {"supported_languages": "uk,en", "default_language": "uk", '
+                'JSON options, e.g. {"supported_languages": "ru,uk,en", "default_language": "ru", '
                 '"search_rate_limit": 5, "search_suggestion_limit": 5}.'
             ),
         },
