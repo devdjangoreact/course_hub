@@ -101,7 +101,11 @@ def course_from_raw(
     }
 
 
-def normalize_flancki_export(posts_path: Path | None = None) -> list[Path]:
+def normalize_flancki_export(
+    posts_path: Path | None = None,
+    *,
+    category_dir_name: str = "flancki_need_enrich",
+) -> list[Path]:
     chat_id = int(config.TG_FLANCKI_CHAT_ID)
     if posts_path is None:
         posts_path = (
@@ -113,7 +117,7 @@ def normalize_flancki_export(posts_path: Path | None = None) -> list[Path]:
     if isinstance(posts, dict):
         posts = posts.get("posts") or []
     written: list[Path] = []
-    category_dir = config.CATALOG_ROOT / "categories" / "flancki"
+    category_dir = config.CATALOG_ROOT / "categories" / category_dir_name
     category_dir.mkdir(parents=True, exist_ok=True)
     for post in posts:
         course_index = 0

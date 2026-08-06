@@ -26,9 +26,12 @@ def select_course_json_files(
     limit: int | None = None,
     post_ids: set[int] | None = None,
     newest_first: bool = True,
+    category_dirs: set[str] | None = None,
 ) -> list[Path]:
     files = iter_course_json_files(root)
     files = [path for path in files if path.parent.name != "test"]
+    if category_dirs is not None:
+        files = [path for path in files if path.parent.name in category_dirs]
     files.sort(key=lambda path: path.name, reverse=newest_first)
     if post_ids:
         files = [

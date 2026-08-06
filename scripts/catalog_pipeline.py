@@ -23,6 +23,8 @@ DO_POST = False
 DO_SYNC_DB = True
 
 # --- course selection ---
+# Normalize writes here; enrich/post/sync-db read only this folder.
+CATEGORY_DIR = "flancki_need_enrich"
 # The same selection is used by enrich, post, and sync-db.
 POST_IDS: list[int] = []
 # Initial end-to-end batch: 10 newest courses.
@@ -40,6 +42,7 @@ def main() -> None:
         enrich=DO_ENRICH,
         post=DO_POST,
         sync_db=DO_SYNC_DB,
+        category_dir=CATEGORY_DIR,
         course_limit=COURSE_LIMIT,
         enrich_limit=ENRICH_LIMIT,
         post_ids=POST_IDS or None,

@@ -1,11 +1,14 @@
 ﻿name: Build and Notify
 
+# DISABLED: AWS/ECR + infra deploy turned off.
+# Was: push to main → build image → push ECR Public → repository_dispatch to infra.
+# Re-enable: restore `on.push.branches: [main]` below.
+
 # Build authority only: build the site image, push it to Amazon ECR Public,
 # then notify infra-repo via repository_dispatch. No deployment happens here.
 
 on:
-  push:
-    branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read

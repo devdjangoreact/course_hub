@@ -152,19 +152,8 @@ Do **not** commit `.env.prod`.
 3. Optional Variable `VERCEL_PRODUCTION_URL` = `https://your-project.vercel.app`  
    CI overwrites `BACKEND_URL` so Telegram webhook points at prod.
 
-4. Push to `main`. Workflow: `.github/workflows/deploy-vercel.yml`.
-
-### Manual sync (optional)
-
-```powershell
-powershell -ExecutionPolicy Bypass -File scripts/sync-vercel-env.ps1 -EnvFile .env.prod
-```
-
-```bash
-export VERCEL_TOKEN=...
-./scripts/sync-vercel-env.sh .env.prod production
-npx vercel --prod
-```
+4. Push to `main`. Workflow: `.github/workflows/deploy-vercel.yml`
+   (writes `.env.prod` from `ENV_PROD`, syncs app keys into Vercel production env, deploys).
 
 Existing ECR/`infra` pipeline in `.github/workflows/build.yml` is unchanged.
 

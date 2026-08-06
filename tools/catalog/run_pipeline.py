@@ -18,6 +18,7 @@ def run_pipeline(
     enrich: bool = False,
     post: bool = False,
     sync_db: bool = False,
+    category_dir: str = "flancki_need_enrich",
     course_limit: int | None = None,
     enrich_limit: int | None = None,
     post_ids: list[int] | None = None,
@@ -25,6 +26,7 @@ def run_pipeline(
     force_repost: bool = False,
 ) -> None:
     selected_post_ids = set(post_ids) if post_ids else None
+    category_dirs = {category_dir}
     if parse:
         from flancki_pyrogram import run_parse
 
@@ -33,7 +35,7 @@ def run_pipeline(
     if normalize or parse:
         from normalize import normalize_flancki_export
 
-        normalize_flancki_export()
+        normalize_flancki_export(category_dir_name=category_dir)
 
     if enrich:
         from enrich import enrich_all
@@ -42,6 +44,7 @@ def run_pipeline(
             limit=enrich_limit if enrich_limit is not None else course_limit,
             post_ids=selected_post_ids,
             newest_first=enrich_newest_first,
+            category_dirs=category_dirs,
         )
 
     selected_paths = None
@@ -54,6 +57,7 @@ def run_pipeline(
             limit=course_limit,
             post_ids=selected_post_ids,
             newest_first=enrich_newest_first,
+            category_dirs=category_dirs,
         )
 
     sync_main = None

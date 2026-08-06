@@ -281,7 +281,7 @@ def test_normalize_preserves_metadata_and_cleans_public_text(
     tmp_path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     catalog_root = tmp_path / "catalog"
-    category_dir = catalog_root / "categories" / "flancki"
+    category_dir = catalog_root / "categories" / "flancki_need_enrich"
     category_dir.mkdir(parents=True)
     export_path = tmp_path / "posts.json"
     download = "https://cloud.mail.ru/private"
@@ -349,7 +349,9 @@ def test_pipeline_syncs_then_posts_the_same_selected_courses(
     monkeypatch.setitem(
         sys.modules,
         "normalize",
-        SimpleNamespace(normalize_flancki_export=lambda: calls.append(("normalize", None))),
+        SimpleNamespace(
+            normalize_flancki_export=lambda **kwargs: calls.append(("normalize", None))
+        ),
     )
 
     async def sync_main(**kwargs) -> int:

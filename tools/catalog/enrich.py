@@ -117,6 +117,7 @@ def enrich_all(
     limit: int | None = None,
     post_ids: set[int] | None = None,
     newest_first: bool = True,
+    category_dirs: set[str] | None = None,
 ) -> int:
     client = get_enrich_ai_client()
     files = select_course_json_files(
@@ -124,6 +125,7 @@ def enrich_all(
         limit=limit,
         post_ids=post_ids,
         newest_first=newest_first,
+        category_dirs=category_dirs,
     )
     count = 0
     for path in files:
