@@ -11,8 +11,8 @@ sessions_parogram/
 # Telegram group/channel exports (local)
 data/telegram_exports/
 
-# Generated Flancki catalog JSON (rebuilt by tools/catalog/normalize.py)
-data/catalog/categories/flancki/
+# Local catalog course JSON
+data/catalog/categories/
 
 # Python
 __pycache__/
@@ -33,3 +33,4 @@ venv/
 .coverage
 htmlcov/
 .vercel
+.graphify
