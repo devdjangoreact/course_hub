@@ -29,7 +29,16 @@ async def test_inactive_source_returns_safe_error() -> None:
 def _catalog_tool(monkeypatch: pytest.MonkeyPatch, name: str, config: object):
     monkeypatch.syspath_prepend("tools/catalog")
     monkeypatch.setitem(sys.modules, "config", config)
-    sys.modules.pop(name, None)
+    # Drop publish stack so config injection applies on re-import.
+    for mod in (
+        name,
+        "publish",
+        "publish.channel",
+        "publish.__init__",
+        "post_channel",
+        "course_json",
+    ):
+        sys.modules.pop(mod, None)
     return importlib.import_module(name)
 
 
@@ -42,7 +51,7 @@ def test_channel_posts_hide_download_and_have_order_buttons(
         CATALOG_DISCUSSION_GROUP_ID=None,
         CATALOG_INVITE_LINK="",
     )
-    post_channel = _catalog_tool(monkeypatch, "post_channel", config)
+    channel = _catalog_tool(monkeypatch, "publish.channel", config)
     path = tmp_path / "course.json"
     download = "https://cloud.mail.ru/private"
     path.write_text(
@@ -64,9 +73,9 @@ def test_channel_posts_hide_download_and_have_order_buttons(
         payloads.append(payload)
         return {"message_id": len(payloads)}
 
-    monkeypatch.setattr(post_channel, "_bot_call", bot_call)
+    monkeypatch.setattr(channel, "_bot_call", bot_call)
 
-    post_channel.post_course(path, bot_username="course_hub_bot")
+    channel.post_course(path, bot_username="course_hub_bot")
 
     assert len(payloads) == 2
     for payload in payloads:
@@ -90,7 +99,7 @@ def test_channel_posting_resolves_bot_username_once(
         CATALOG_DISCUSSION_GROUP_ID=None,
         CATALOG_INVITE_LINK="",
     )
-    post_channel = _catalog_tool(monkeypatch, "post_channel", config)
+    post_channel = _catalog_tool(monkeypatch, "publish.channel", config)
     path = tmp_path / "course.json"
     path.write_text("{}", encoding="utf-8")
     usernames: list[str] = []
@@ -123,7 +132,7 @@ def test_existing_channel_posts_are_sanitized_without_reposting(
         CATALOG_DISCUSSION_GROUP_ID=None,
         CATALOG_INVITE_LINK="",
     )
-    post_channel = _catalog_tool(monkeypatch, "post_channel", config)
+    post_channel = _catalog_tool(monkeypatch, "publish.channel", config)
     path = tmp_path / "course.json"
     download = "https://cloud.mail.ru/private"
     path.write_text(
@@ -166,7 +175,7 @@ def test_unchanged_channel_post_update_is_idempotent(
         CATALOG_DISCUSSION_GROUP_ID=None,
         CATALOG_INVITE_LINK="",
     )
-    post_channel = _catalog_tool(monkeypatch, "post_channel", config)
+    post_channel = _catalog_tool(monkeypatch, "publish.channel", config)
     path = tmp_path / "course.json"
     path.write_text(
         json.dumps(
@@ -203,7 +212,7 @@ def test_partial_channel_post_saves_sent_message_id(
         CATALOG_DISCUSSION_GROUP_ID=None,
         CATALOG_INVITE_LINK="",
     )
-    post_channel = _catalog_tool(monkeypatch, "post_channel", config)
+    post_channel = _catalog_tool(monkeypatch, "publish.channel", config)
     path = tmp_path / "course.json"
     path.write_text(
         json.dumps(
@@ -243,7 +252,7 @@ def test_force_repost_appends_new_message_ids(tmp_path, monkeypatch: pytest.Monk
         CATALOG_DISCUSSION_GROUP_ID=None,
         CATALOG_INVITE_LINK="",
     )
-    post_channel = _catalog_tool(monkeypatch, "post_channel", config)
+    post_channel = _catalog_tool(monkeypatch, "publish.channel", config)
     path = tmp_path / "course.json"
     path.write_text(
         json.dumps(
@@ -332,7 +341,7 @@ def test_normalize_preserves_metadata_and_cleans_public_text(
     assert data["custom_metadata"] == {"keep": True}
 
 
-def test_pipeline_syncs_then_posts_the_same_selected_courses(
+def test_pipeline_posts_enriched_then_syncs_post_folder(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     run_pipeline = _catalog_tool(
@@ -359,17 +368,21 @@ def test_pipeline_syncs_then_posts_the_same_selected_courses(
         return len(kwargs["paths"])
 
     monkeypatch.setitem(sys.modules, "sync_db", SimpleNamespace(main=sync_main))
-    monkeypatch.setitem(
-        sys.modules,
-        "post_channel",
-        SimpleNamespace(post_all=lambda **kwargs: calls.append(("post", kwargs["paths"]))),
-    )
+
+    import types
+
+    publish_mod = types.ModuleType("publish")
+    channel_mod = types.ModuleType("publish.channel")
+    channel_mod.post_all = lambda **kwargs: calls.append(("post", kwargs["paths"]))
+    publish_mod.channel = channel_mod
+    monkeypatch.setitem(sys.modules, "publish", publish_mod)
+    monkeypatch.setitem(sys.modules, "publish.channel", channel_mod)
 
     run_pipeline.run_pipeline(normalize=True, sync_db=True, post=True, course_limit=2)
 
+    # post is separate from enrich folder; sync after post refreshes telegram.* in DB
     assert calls == [
         ("normalize", None),
-        ("sync", selected),
         ("post", selected),
         ("sync", selected),
     ]

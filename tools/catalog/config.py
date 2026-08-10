@@ -91,6 +91,12 @@ AWS_BEDROCK_MODEL_ID = env("AWS_BEDROCK_MODEL_ID")
 
 DATABASE_URL = env("DATABASE_URL")
 
+# Proxied browser (nodriver + mitm relay)
+PROXIES_PATH = Path(env("PROXIES_PATH") or str(CATALOG_ROOT / "proxies.json"))
+RELAY_LOCAL_PORT = env_int("RELAY_LOCAL_PORT", 8899) or 8899
+WEBSHERE_PROXY_API_KEY = env("WEBSHERE_PROXY_API_KEY")  # Webshare API token
+WEBSHERE_PROXY_MODE = env("WEBSHERE_PROXY_MODE", "direct") or "direct"
+
 # Back-compat aliases used by older scripts in this folder
 API_ID = TG_API_ID
 API_HASH = TG_API_HASH

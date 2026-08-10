@@ -14,6 +14,9 @@ data/telegram_exports/
 # Local catalog course JSON
 data/catalog/categories/
 
+# Proxy pool credentials (host:port:user:pass)
+data/catalog/proxies.json
+
 # Python
 __pycache__/
 *.py[cod]

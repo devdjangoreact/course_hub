@@ -3,6 +3,10 @@
   python scripts/catalog_pipeline.py
 
 Secrets: `.env` (TG_*, BOT_TOKEN, CATALOG_*, AI_*, DATABASE_URL).
+
+Enrich and Telegram publish are separate:
+  - enrich uses CATEGORY_DIR (need_enrich)
+  - post uses POST_CATEGORY_DIR (flancki); prefer scripts/post_catalog_channel.py
 """
 
 from __future__ import annotations
@@ -23,13 +27,13 @@ DO_POST = False
 DO_SYNC_DB = True
 
 # --- course selection ---
-# Normalize writes here; enrich/post/sync-db read only this folder.
 CATEGORY_DIR = "flancki_need_enrich"
-# The same selection is used by enrich, post, and sync-db.
+POST_CATEGORY_DIR = "flancki"
 POST_IDS: list[int] = []
-# Initial end-to-end batch: 10 newest courses.
 COURSE_LIMIT: int | None = 10
 ENRICH_LIMIT: int | None = 10
+# None = all JSON under POST_CATEGORY_DIR
+POST_LIMIT: int | None = None
 ENRICH_NEWEST_FIRST = True
 FORCE_REPOST = False
 # ------------------
@@ -43,8 +47,10 @@ def main() -> None:
         post=DO_POST,
         sync_db=DO_SYNC_DB,
         category_dir=CATEGORY_DIR,
+        post_category_dir=POST_CATEGORY_DIR,
         course_limit=COURSE_LIMIT,
         enrich_limit=ENRICH_LIMIT,
+        post_limit=POST_LIMIT,
         post_ids=POST_IDS or None,
         enrich_newest_first=ENRICH_NEWEST_FIRST,
         force_repost=FORCE_REPOST,

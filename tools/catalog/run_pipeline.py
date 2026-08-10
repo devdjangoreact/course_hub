@@ -19,14 +19,22 @@ def run_pipeline(
     post: bool = False,
     sync_db: bool = False,
     category_dir: str = "flancki_need_enrich",
+    post_category_dir: str = "flancki",
     course_limit: int | None = None,
     enrich_limit: int | None = None,
+    post_limit: int | None = None,
     post_ids: list[int] | None = None,
     enrich_newest_first: bool = True,
     force_repost: bool = False,
 ) -> None:
+    """
+    Enrich and Telegram publish are separate steps:
+    - enrich / normalize use `category_dir` (default need_enrich)
+    - post uses `post_category_dir` (default flancki)
+    - sync_db alone uses `category_dir`; after post, sync uses `post_category_dir`
+    """
     selected_post_ids = set(post_ids) if post_ids else None
-    category_dirs = {category_dir}
+
     if parse:
         from flancki_pyrogram import run_parse
 
@@ -44,32 +52,58 @@ def run_pipeline(
             limit=enrich_limit if enrich_limit is not None else course_limit,
             post_ids=selected_post_ids,
             newest_first=enrich_newest_first,
-            category_dirs=category_dirs,
+            category_dirs={category_dir},
         )
 
-    selected_paths = None
-    if sync_db or post:
-        import config
-        from course_json import select_course_json_files
-
-        selected_paths = select_course_json_files(
-            config.CATALOG_ROOT,
-            limit=course_limit,
+    if sync_db and not post:
+        _sync_selected(
+            category_dirs={category_dir},
+            course_limit=course_limit,
             post_ids=selected_post_ids,
             newest_first=enrich_newest_first,
-            category_dirs=category_dirs,
         )
 
-    sync_main = None
-    if sync_db and selected_paths is not None:
-        from sync_db import main as sync_main
+    if post:
+        import config
+        from course_json import select_course_json_files
+        from publish.channel import post_all
 
-        asyncio.run(sync_main(paths=selected_paths))
+        post_paths = select_course_json_files(
+            config.CATALOG_ROOT,
+            limit=post_limit,
+            post_ids=selected_post_ids,
+            newest_first=enrich_newest_first,
+            category_dirs={post_category_dir},
+        )
+        if post_paths:
+            post_all(paths=post_paths, force=force_repost)
 
-    if post and selected_paths is not None:
-        from post_channel import post_all
+    if sync_db and post:
+        _sync_selected(
+            category_dirs={post_category_dir},
+            course_limit=post_limit,
+            post_ids=selected_post_ids,
+            newest_first=enrich_newest_first,
+        )
 
-        post_all(paths=selected_paths, force=force_repost)
 
-    if sync_main is not None and post and selected_paths is not None:
-        asyncio.run(sync_main(paths=selected_paths))
+def _sync_selected(
+    *,
+    category_dirs: set[str],
+    course_limit: int | None,
+    post_ids: set[int] | None,
+    newest_first: bool,
+) -> None:
+    import config
+    from course_json import select_course_json_files
+    from sync_db import main as sync_main
+
+    paths = select_course_json_files(
+        config.CATALOG_ROOT,
+        limit=course_limit,
+        post_ids=post_ids,
+        newest_first=newest_first,
+        category_dirs=category_dirs,
+    )
+    if paths:
+        asyncio.run(sync_main(paths=paths))
