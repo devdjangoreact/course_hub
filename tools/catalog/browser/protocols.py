@@ -41,7 +41,12 @@ class ProxyRelay(Protocol):
 
 
 class Browser(Protocol):
-    async def start(self, *, local_relay_port: int) -> None: ...
+    async def start(
+        self,
+        *,
+        local_relay_port: int | None = None,
+        proxy: ProxyCredentials | None = None,
+    ) -> None: ...
 
     async def stop(self) -> None: ...
 

@@ -23,6 +23,7 @@ from run_pipeline import run_pipeline  # noqa: E402  # pyright: ignore[reportMis
 DO_PARSE = False
 DO_NORMALIZE = False
 DO_ENRICH = False
+DO_ENRICH_DOCKER = False
 DO_POST = False
 DO_SYNC_DB = True
 
@@ -44,6 +45,7 @@ def main() -> None:
         parse=DO_PARSE,
         normalize=DO_NORMALIZE,
         enrich=DO_ENRICH,
+        enrich_docker=DO_ENRICH_DOCKER,
         post=DO_POST,
         sync_db=DO_SYNC_DB,
         category_dir=CATEGORY_DIR,

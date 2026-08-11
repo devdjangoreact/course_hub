@@ -1,0 +1,18 @@
+# Minimal SearXNG settings — proxy filled by render_searxng_settings.py
+use_default_settings: true
+server:
+  bind_address: "127.0.0.1"
+  port: 8080
+  secret_key: "catalog-worker-not-for-production"
+  base_url: false
+  limiter: false
+search:
+  safe_search: 0
+  autocomplete: ""
+  default_lang: "auto"
+outgoing:
+  request_timeout: 10.0
+  extra_proxy_timeout: 10.0
+  proxies:
+    all://:
+      - "__HTTP_PROXY__"

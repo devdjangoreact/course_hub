@@ -16,6 +16,7 @@ def run_pipeline(
     parse: bool = False,
     normalize: bool = False,
     enrich: bool = False,
+    enrich_docker: bool = False,
     post: bool = False,
     sync_db: bool = False,
     category_dir: str = "flancki_need_enrich",
@@ -30,6 +31,7 @@ def run_pipeline(
     """
     Enrich and Telegram publish are separate steps:
     - enrich / normalize use `category_dir` (default need_enrich)
+    - enrich_docker uses host orchestrator + worker containers (no host mitm)
     - post uses `post_category_dir` (default flancki)
     - sync_db alone uses `category_dir`; after post, sync uses `post_category_dir`
     """
@@ -45,15 +47,23 @@ def run_pipeline(
 
         normalize_flancki_export(category_dir_name=category_dir)
 
-    if enrich:
-        from enrich import enrich_all
+    if enrich or enrich_docker:
+        if enrich_docker:
+            from worker_orchestrator import run_waves
 
-        enrich_all(
-            limit=enrich_limit if enrich_limit is not None else course_limit,
-            post_ids=selected_post_ids,
-            newest_first=enrich_newest_first,
-            category_dirs={category_dir},
-        )
+            run_waves(
+                limit=enrich_limit if enrich_limit is not None else course_limit,
+                category_dir=category_dir,
+            )
+        else:
+            from enrich import enrich_all
+
+            enrich_all(
+                limit=enrich_limit if enrich_limit is not None else course_limit,
+                post_ids=selected_post_ids,
+                newest_first=enrich_newest_first,
+                category_dirs={category_dir},
+            )
 
     if sync_db and not post:
         _sync_selected(

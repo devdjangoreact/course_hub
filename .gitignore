@@ -17,6 +17,9 @@ data/catalog/categories/
 # Proxy pool credentials (host:port:user:pass)
 data/catalog/proxies.json
 
+# Ephemeral docker worker batch mounts
+data/catalog/.worker_runs/
+
 # Python
 __pycache__/
 *.py[cod]

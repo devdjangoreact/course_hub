@@ -97,6 +97,11 @@ RELAY_LOCAL_PORT = env_int("RELAY_LOCAL_PORT", 8899) or 8899
 WEBSHERE_PROXY_API_KEY = env("WEBSHERE_PROXY_API_KEY")  # Webshare API token
 WEBSHERE_PROXY_MODE = env("WEBSHERE_PROXY_MODE", "direct") or "direct"
 
+# Docker enrich worker (local only)
+WORKER_CONCURRENCY = env_int("WORKER_CONCURRENCY", 5) or 5
+WORKER_BATCH_SIZE = env_int("WORKER_BATCH_SIZE", 5) or 5
+WORKER_IMAGE = env("WORKER_IMAGE", "catalog-enrich-worker") or "catalog-enrich-worker"
+
 # Back-compat aliases used by older scripts in this folder
 API_ID = TG_API_ID
 API_HASH = TG_API_HASH
