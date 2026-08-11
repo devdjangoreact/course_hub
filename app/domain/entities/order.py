@@ -13,4 +13,6 @@ class Order:
     amount: Decimal
     status: OrderStatus = OrderStatus.PENDING
     payment_reference: str | None = None
+    bot_id: int | None = None
+    channel_id: int | None = None
     extra: dict[str, Any] = field(default_factory=dict)

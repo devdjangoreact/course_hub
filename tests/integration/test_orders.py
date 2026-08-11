@@ -39,7 +39,10 @@ async def test_simulate_payment_marks_paid(
     notifications: list[tuple[int, int, str]] = []
 
     class FakeBotApp:
-        async def notify_payment_status(self, telegram_id: int, order_id: int, status: str) -> None:
+        async def notify_payment_status(
+            self, telegram_id: int, order_id: int, status: str, bot_id: int | None = None
+        ) -> None:
+            del bot_id
             notifications.append((telegram_id, order_id, status))
 
     app.state.bot_app = FakeBotApp()

@@ -52,12 +52,16 @@ async def _create_order_for_user(
     orders: OrderService,
     from_user: User,
     course_id: int,
+    bot_id: int | None = None,
+    channel_id: int | None = None,
 ) -> tuple[int, PaymentIntent]:
     order, intent = await orders.create_order(
         telegram_id=from_user.id,
         course_id=course_id,
         username=from_user.username,
         full_name=from_user.full_name,
+        bot_id=bot_id,
+        channel_id=channel_id,
     )
     assert order.id is not None
     return order.id, intent
@@ -136,9 +140,12 @@ async def _finalize_order(
     orders: OrderService,
     from_user: User,
     course_id: int,
+    bot_id: int | None = None,
 ) -> None:
     try:
-        order_id, intent = await _create_order_for_user(orders, from_user, course_id)
+        order_id, intent = await _create_order_for_user(
+            orders, from_user, course_id, bot_id=bot_id
+        )
     except NotFoundError:
         await target.answer(bot_message(language, "course_not_found"))
         return
@@ -169,6 +176,7 @@ async def create_order(
     runtime: RuntimeSettings,
     bot_users: BotUserRepository,
     localization: LocalizationService,
+    hub_bot_id: int | None = None,
 ) -> None:
     if callback.from_user is None:
         await callback.answer("Unable to identify user.")
@@ -192,7 +200,9 @@ async def create_order(
         return
 
     try:
-        order_id, intent = await _create_order_for_user(orders, callback.from_user, course_id)
+        order_id, intent = await _create_order_for_user(
+            orders, callback.from_user, course_id, bot_id=hub_bot_id
+        )
     except NotFoundError:
         await callback.answer(bot_message(language, "course_not_found"))
         return
@@ -223,6 +233,7 @@ async def use_saved_payment_email(
     runtime: RuntimeSettings,
     bot_users: BotUserRepository,
     localization: LocalizationService,
+    hub_bot_id: int | None = None,
 ) -> None:
     if callback.from_user is None or not isinstance(callback.message, Message):
         await callback.answer()
@@ -237,6 +248,7 @@ async def use_saved_payment_email(
         orders=orders,
         from_user=callback.from_user,
         course_id=course_id,
+        bot_id=hub_bot_id,
     )
     await callback.answer()
 
@@ -266,6 +278,7 @@ async def receive_payment_email(
     runtime: RuntimeSettings,
     bot_users: BotUserRepository,
     localization: LocalizationService,
+    hub_bot_id: int | None = None,
 ) -> None:
     if message.from_user is None:
         return
@@ -299,4 +312,5 @@ async def receive_payment_email(
         orders=orders,
         from_user=message.from_user,
         course_id=course_id,
+        bot_id=hub_bot_id,
     )

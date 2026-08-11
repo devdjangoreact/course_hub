@@ -1,12 +1,20 @@
 from loguru import logger
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from app.core.config import Settings
 from app.core.database import Database
+from app.core.domain_host import normalize_bot_username
 from app.domain.entities.admin_user import AdminUser
 from app.domain.entities.bot_settings import BotSettings
 from app.domain.entities.payment_settings import PaymentSettings
+from app.domain.entities.telegram_bot import TelegramBot
+from app.domain.entities.telegram_channel import TelegramChannel
 from app.infrastructure.db.models.supported_language import SupportedLanguageModel
+from app.infrastructure.db.models.telegram_bot import TelegramBotModel
+from app.infrastructure.db.repositories.telegram_bot_repository import SqlTelegramBotRepository
+from app.infrastructure.db.repositories.telegram_channel_repository import (
+    SqlTelegramChannelRepository,
+)
 from app.infrastructure.security.password import hash_password
 from app.infrastructure.settings_store.admin_user_repository import SqlAdminUserRepository
 from app.infrastructure.settings_store.bot_settings_repository import SqlBotSettingsRepository
@@ -47,6 +55,68 @@ async def _ensure_default_admin(session, settings: Settings) -> None:
         "Created default admin user '{}'. Change the password in the admin panel.",
         username,
     )
+
+
+async def _resolve_seed_username(token: str, settings: Settings) -> str | None:
+    if settings.bot_username.strip():
+        return normalize_bot_username(settings.bot_username)
+    try:
+        from aiogram import Bot
+
+        bot = Bot(token=token)
+        try:
+            me = await bot.get_me()
+        finally:
+            await bot.session.close()
+    except Exception:
+        logger.exception("Failed to resolve bot username via getMe; skip bots seed.")
+        return None
+    username = getattr(me, "username", None)
+    if not username:
+        logger.warning("Telegram getMe returned no username; skip bots seed.")
+        return None
+    return normalize_bot_username(str(username))
+
+
+async def _ensure_legacy_bot(session, settings: Settings) -> None:
+    count = await session.scalar(select(func.count()).select_from(TelegramBotModel))
+    if count and int(count) > 0:
+        return
+
+    stored = await SqlBotSettingsRepository(session).get()
+    token = (stored.bot_token if stored and stored.bot_token else "") or settings.bot_token
+    if not token.strip():
+        return
+
+    username = await _resolve_seed_username(token, settings)
+    if username is None:
+        return
+
+    bot = await SqlTelegramBotRepository(session).save(
+        TelegramBot(
+            id=None,
+            username=username,
+            token=token,
+            webhook_secret=settings.telegram_webhook_secret,
+            is_active=True,
+            title=username,
+        )
+    )
+    logger.info("Seeded bots row for @{} from legacy token.", username)
+    if settings.catalog_channel_id is None or bot.id is None:
+        return
+    await SqlTelegramChannelRepository(session).save(
+        TelegramChannel(
+            id=None,
+            bot_id=bot.id,
+            telegram_chat_id=int(settings.catalog_channel_id),
+            discussion_group_id=settings.catalog_discussion_group_id,
+            invite_link=settings.catalog_invite_link,
+            title="Catalog",
+            is_active=True,
+        )
+    )
+    logger.info("Seeded catalog channel {} for bot_id={}.", settings.catalog_channel_id, bot.id)
 
 
 async def ensure_initial_data(database: Database, settings: Settings) -> None:
@@ -117,4 +187,6 @@ async def ensure_initial_data(database: Database, settings: Settings) -> None:
                     },
                 )
             )
+
+        await _ensure_legacy_bot(session, settings)
         await session.commit()

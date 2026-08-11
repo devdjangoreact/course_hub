@@ -6,6 +6,7 @@ from app.infrastructure.db.models.bot_settings import BotSettingsModel
 from app.infrastructure.db.models.bot_user import BotUserModel
 from app.infrastructure.db.models.category import CategoryModel
 from app.infrastructure.db.models.category_translation import CategoryTranslationModel
+from app.infrastructure.db.models.channel_course import ChannelCourseModel
 from app.infrastructure.db.models.course import CourseModel
 from app.infrastructure.db.models.course_translation import CourseTranslationModel
 from app.infrastructure.db.models.imported_catalog_item import ImportedCatalogItemModel
@@ -13,6 +14,8 @@ from app.infrastructure.db.models.order import OrderModel
 from app.infrastructure.db.models.parser_job import ParserJobModel
 from app.infrastructure.db.models.parser_source import ParserSourceModel
 from app.infrastructure.db.models.payment_settings import PaymentSettingsModel
+from app.infrastructure.db.models.telegram_bot import TelegramBotModel
+from app.infrastructure.db.models.telegram_channel import TelegramChannelModel
 from app.infrastructure.security.password import hash_password
 
 
@@ -69,6 +72,8 @@ class OrderAdmin(ModelView, model=OrderModel):
         OrderModel.id,
         OrderModel.bot_user_id,
         OrderModel.course_id,
+        OrderModel.bot_id,
+        OrderModel.channel_id,
         OrderModel.amount,
         OrderModel.status,
     ]
@@ -165,7 +170,10 @@ class AppSettingsAdmin(ModelView, model=BotSettingsModel):
             "description": "Public base URL for checkout pages and payment webhooks.",
         },
         "bot_token": {
-            "description": "Telegram bot token. Restart the app after changing.",
+            "description": (
+                "Deprecated for multi-bot runtime — manage tokens under Telegram → Bots. "
+                "Still used only to seed the first bot when the bots table is empty."
+            ),
         },
         "admin_session_secret": {
             "description": "Signs admin login cookies. Restart required after change.",
@@ -180,8 +188,9 @@ class AppSettingsAdmin(ModelView, model=BotSettingsModel):
         },
         "extra": {
             "description": (
-                'JSON options, e.g. {"supported_languages": "ru,uk,en", "default_language": "ru", '
-                '"search_rate_limit": 5, "search_suggestion_limit": 5}.'
+                'JSON options, e.g. {"base_domain": "example.com", "supported_languages": "ru,uk,en", '
+                '"default_language": "ru", "search_rate_limit": 5, "search_suggestion_limit": 5}. '
+                "extra.base_domain overrides BASE_DOMAIN / backend_url host for bot subdomains."
             ),
         },
     }
@@ -314,6 +323,97 @@ class ImportedCatalogItemAdmin(ModelView, model=ImportedCatalogItemModel):
     icon = "fa-solid fa-inbox"
 
 
+class TelegramBotAdmin(ModelView, model=TelegramBotModel):
+    category = "Telegram"
+    column_list = [
+        TelegramBotModel.id,
+        TelegramBotModel.username,
+        TelegramBotModel.is_active,
+        TelegramBotModel.updated_at,
+    ]
+    column_details_list = [
+        TelegramBotModel.id,
+        TelegramBotModel.username,
+        TelegramBotModel.token,
+        TelegramBotModel.webhook_secret,
+        TelegramBotModel.title,
+        TelegramBotModel.notes,
+        TelegramBotModel.extra,
+        TelegramBotModel.is_active,
+        TelegramBotModel.updated_at,
+    ]
+    column_formatters = {
+        TelegramBotModel.token: lambda model, _: _mask_secret(model, "token", model.token),
+        TelegramBotModel.webhook_secret: lambda model, _: _mask_secret(
+            model, "webhook_secret", model.webhook_secret
+        ),
+    }
+    form_columns = [
+        TelegramBotModel.username,
+        TelegramBotModel.token,
+        TelegramBotModel.webhook_secret,
+        TelegramBotModel.title,
+        TelegramBotModel.notes,
+        TelegramBotModel.extra,
+        TelegramBotModel.is_active,
+    ]
+    form_args = {
+        "username": {"description": "Telegram bot username without @ (also the subdomain)."},
+        "token": {"description": "Bot API token. Restart the app after create/update."},
+        "webhook_secret": {
+            "description": "Optional per-bot webhook secret. Restart after change.",
+        },
+    }
+    name = "Bot"
+    name_plural = "Bots"
+    icon = "fa-solid fa-robot"
+
+
+class TelegramChannelAdmin(ModelView, model=TelegramChannelModel):
+    category = "Telegram"
+    column_list = [
+        TelegramChannelModel.id,
+        TelegramChannelModel.bot_id,
+        TelegramChannelModel.telegram_chat_id,
+        TelegramChannelModel.is_public,
+        TelegramChannelModel.is_active,
+        TelegramChannelModel.title,
+    ]
+    form_columns = [
+        TelegramChannelModel.bot_id,
+        TelegramChannelModel.telegram_chat_id,
+        TelegramChannelModel.discussion_group_id,
+        TelegramChannelModel.is_public,
+        TelegramChannelModel.discussion_is_public,
+        TelegramChannelModel.invite_link,
+        TelegramChannelModel.discussion_invite_link,
+        TelegramChannelModel.title,
+        TelegramChannelModel.slug,
+        TelegramChannelModel.extra,
+        TelegramChannelModel.is_active,
+    ]
+    name = "Channel"
+    name_plural = "Channels"
+    icon = "fa-solid fa-bullhorn"
+
+
+class ChannelCourseAdmin(ModelView, model=ChannelCourseModel):
+    category = "Telegram"
+    column_list = [
+        ChannelCourseModel.id,
+        ChannelCourseModel.channel_id,
+        ChannelCourseModel.course_id,
+    ]
+    form_columns = [
+        ChannelCourseModel.channel_id,
+        ChannelCourseModel.course_id,
+        ChannelCourseModel.extra,
+    ]
+    name = "Channel Course"
+    name_plural = "Channel Courses"
+    icon = "fa-solid fa-link"
+
+
 ALL_VIEWS = [
     CategoryAdmin,
     CourseAdmin,
@@ -327,4 +427,7 @@ ALL_VIEWS = [
     ParserSourceAdmin,
     ParserJobAdmin,
     ImportedCatalogItemAdmin,
+    TelegramBotAdmin,
+    TelegramChannelAdmin,
+    ChannelCourseAdmin,
 ]

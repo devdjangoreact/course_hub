@@ -15,6 +15,8 @@ def _to_entity(model: OrderModel) -> Order:
         amount=model.amount,
         status=OrderStatus(model.status),
         payment_reference=model.payment_reference,
+        bot_id=model.bot_id,
+        channel_id=model.channel_id,
         extra=dict(model.extra),
     )
 
@@ -30,6 +32,8 @@ class SqlOrderRepository(OrderRepository):
             amount=order.amount,
             status=order.status.value,
             payment_reference=order.payment_reference,
+            bot_id=order.bot_id,
+            channel_id=order.channel_id,
             extra=order.extra,
         )
         self._session.add(model)
@@ -65,6 +69,8 @@ class SqlOrderRepository(OrderRepository):
             raise ValueError("Order not found")
         model.status = order.status.value
         model.payment_reference = order.payment_reference
+        model.bot_id = order.bot_id
+        model.channel_id = order.channel_id
         model.extra = order.extra
         await self._session.flush()
         return _to_entity(model)

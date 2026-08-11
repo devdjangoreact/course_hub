@@ -15,6 +15,10 @@ _SQLITE_COLUMN_PATCHES: dict[str, dict[str, str]] = {
         "admin_session_secret": "VARCHAR NOT NULL DEFAULT ''",
         "log_level": "VARCHAR NOT NULL DEFAULT 'INFO'",
     },
+    "orders": {
+        "bot_id": "INTEGER",
+        "channel_id": "INTEGER",
+    },
 }
 
 

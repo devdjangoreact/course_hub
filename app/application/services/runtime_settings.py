@@ -6,6 +6,7 @@ from typing import Any
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import Settings
+from app.core.domain_host import resolve_base_domain
 from app.domain.entities.bot_settings import BotSettings
 from app.infrastructure.settings_store.bot_settings_repository import SqlBotSettingsRepository
 
@@ -27,6 +28,7 @@ def _extra_str(extra: dict[str, Any], key: str, default: str) -> str:
 class RuntimeSettings:
     app_env: str
     backend_url: str
+    base_domain: str
     admin_session_secret: str
     log_level: str
     bot_token: str
@@ -42,9 +44,14 @@ class RuntimeSettings:
     @classmethod
     def from_sources(cls, env: Settings, stored: BotSettings | None) -> RuntimeSettings:
         extra = dict(stored.extra) if stored is not None else {}
+        backend_url = stored.backend_url if stored and stored.backend_url else env.backend_url
         return cls(
             app_env=stored.app_env if stored and stored.app_env else env.app_env.value,
-            backend_url=stored.backend_url if stored and stored.backend_url else env.backend_url,
+            backend_url=backend_url,
+            base_domain=resolve_base_domain(
+                base_domain=_extra_str(extra, "base_domain", env.base_domain),
+                backend_url=backend_url,
+            ),
             admin_session_secret=(
                 stored.admin_session_secret
                 if stored and stored.admin_session_secret

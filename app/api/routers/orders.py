@@ -127,7 +127,9 @@ async def lava_payment_webhook(
         user = await service.get_order_user(order)
         bot_app = getattr(request.app.state, "bot_app", None)
         if order.id is not None and bot_app is not None:
-            await bot_app.notify_payment_status(user.telegram_id, order.id, order.status.value)
+            await bot_app.notify_payment_status(
+                user.telegram_id, order.id, order.status.value, bot_id=order.bot_id
+            )
     return {"ok": True}
 
 
@@ -149,7 +151,9 @@ async def atlos_payment_webhook(
         user = await service.get_order_user(order)
         bot_app = getattr(request.app.state, "bot_app", None)
         if order.id is not None and bot_app is not None:
-            await bot_app.notify_payment_status(user.telegram_id, order.id, order.status.value)
+            await bot_app.notify_payment_status(
+                user.telegram_id, order.id, order.status.value, bot_id=order.bot_id
+            )
     return {"ok": True}
 
 
@@ -168,7 +172,9 @@ async def payment_webhook(
         user = await service.get_order_user(order)
         bot_app = getattr(request.app.state, "bot_app", None)
         if order.id is not None and bot_app is not None:
-            await bot_app.notify_payment_status(user.telegram_id, order.id, order.status.value)
+            await bot_app.notify_payment_status(
+                user.telegram_id, order.id, order.status.value, bot_id=order.bot_id
+            )
     return {"ok": True}
 
 
@@ -187,5 +193,7 @@ async def simulate_payment(
         user = await service.get_order_user(order)
         bot_app = getattr(request.app.state, "bot_app", None)
         if order.id is not None and bot_app is not None:
-            await bot_app.notify_payment_status(user.telegram_id, order.id, order.status.value)
+            await bot_app.notify_payment_status(
+                user.telegram_id, order.id, order.status.value, bot_id=order.bot_id
+            )
     return {"ok": True}

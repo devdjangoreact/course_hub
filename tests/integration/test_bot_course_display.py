@@ -3,6 +3,7 @@ from httpx import AsyncClient
 
 from app.bot.context import BotRuntime
 from app.bot.keyboards.catalog import course_detail_keyboard
+from app.bot.registry import RegisteredBot
 from app.bot.runner import BotApp
 from app.infrastructure.db.repositories.course_repository import SqlCourseRepository
 
@@ -54,7 +55,15 @@ async def test_payment_notification_only_delivers_access_for_paid_status(
             payment_gateway=app.state.payment_gateway,
         )
     )
-    bot_app._bot = FakeBot()
+    bot_app.registry.upsert(
+        RegisteredBot(
+            bot_id=1,
+            username="testbot",
+            token="x",
+            webhook_secret="",
+            aiogram_bot=FakeBot(),  # type: ignore[arg-type]
+        )
+    )
 
     await bot_app.notify_payment_status(777, body["order_id"], "paid")
     paid_text = "\n".join(messages)

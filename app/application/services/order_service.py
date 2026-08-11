@@ -53,6 +53,8 @@ class OrderService:
         course_id: int,
         username: str | None = None,
         full_name: str | None = None,
+        bot_id: int | None = None,
+        channel_id: int | None = None,
     ) -> tuple[Order, PaymentIntent]:
         existing_user = await self._bot_users.get_by_telegram_id(telegram_id)
         user = await self._bot_users.upsert(
@@ -86,6 +88,8 @@ class OrderService:
                 course_id=course_id,
                 amount=course.price,
                 status=OrderStatus.PENDING,
+                bot_id=bot_id,
+                channel_id=channel_id,
             )
         )
         intent = await self._gateway.create_payment(

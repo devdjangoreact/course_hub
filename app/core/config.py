@@ -30,7 +30,9 @@ class Settings(BaseSettings):
     database_url: str = "sqlite+aiosqlite:///./course_hub.db"
 
     bot_token: str = ""
+    bot_username: str = ""
     backend_url: str = "http://localhost:8000"
+    base_domain: str = ""
 
     telegram_mode: TelegramMode = TelegramMode.WEBHOOK
     telegram_auto_set_webhook: bool = True

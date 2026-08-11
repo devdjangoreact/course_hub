@@ -4,8 +4,9 @@ from typing import Any
 from aiogram import BaseMiddleware
 from aiogram.types import TelegramObject
 
-from app.bot.context import BotRuntime
 from app.application.services.runtime_settings import load_runtime_settings
+from app.bot.context import BotRuntime
+from app.bot.registry import get_hub_bot_id
 from app.container import (
     build_catalog_service,
     build_localization_service,
@@ -36,6 +37,7 @@ class ServicesMiddleware(BaseMiddleware):
             data["orders"] = build_order_service(session, runtime.payment_gateway)
             data["bot_users"] = SqlBotUserRepository(session)
             data["runtime"] = runtime_settings
+            data["hub_bot_id"] = get_hub_bot_id()
             try:
                 result = await handler(event, data)
                 await session.commit()
