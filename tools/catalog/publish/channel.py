@@ -28,10 +28,13 @@ def _retry_after_seconds(detail: str, fallback: float = 5.0) -> float:
     return fallback
 
 
-def _bot_call(method: str, payload: dict[str, Any]) -> dict[str, Any]:
-    if not config.BOT_TOKEN:
+def _bot_call(
+    method: str, payload: dict[str, Any], *, token: str | None = None
+) -> dict[str, Any]:
+    bot_token = (token or config.BOT_TOKEN or "").strip()
+    if not bot_token:
         raise SystemExit("Set BOT_TOKEN in .env")
-    url = f"https://api.telegram.org/bot{config.BOT_TOKEN}/{method}"
+    url = f"https://api.telegram.org/bot{bot_token}/{method}"
     data = json.dumps(payload).encode("utf-8")
     last_detail = ""
     for attempt in range(_BOT_429_RETRIES + 1):
@@ -72,7 +75,7 @@ def _order_markup(bot_username: str, slug: str) -> dict[str, Any]:
         "inline_keyboard": [
             [
                 {
-                    "text": "Замовити",
+                    "text": "Заказать",
                     "url": f"https://t.me/{bot_username}?start=course_{slug}",
                 }
             ]
@@ -80,14 +83,17 @@ def _order_markup(bot_username: str, slug: str) -> dict[str, Any]:
     }
 
 
-def _message_payload(text: str, markup: dict[str, Any]) -> dict[str, Any]:
+def _message_payload(text: str, markup: dict[str, Any], *, chat_id: int) -> dict[str, Any]:
     return {
-        "chat_id": config.CATALOG_CHANNEL_ID,
+        "chat_id": chat_id,
         "text": text,
         "parse_mode": "HTML",
         "disable_web_page_preview": True,
         "reply_markup": markup,
     }
+
+
+_TG_TEXT_LIMIT = 4096
 
 
 def _promo_and_full_texts(data: dict[str, Any]) -> tuple[str, str]:
@@ -102,6 +108,27 @@ def _promo_and_full_texts(data: dict[str, Any]) -> tuple[str, str]:
     )
 
 
+def _channel_post_text(promo_text: str, full_text: str) -> str:
+    """One channel message: promo plus expandable 'Детально' (no second post)."""
+    promo = promo_text.strip()
+    full = (
+        full_text.strip()
+        .replace("</blockquote>", "")
+        .replace("<blockquote expandable>", "")
+        .replace("<blockquote>", "")
+    )
+    if not full or full == promo:
+        return promo
+    inner = f"<b>Детально</b>\n\n{full}"
+    wrapper = "\n\n<blockquote expandable></blockquote>"
+    room = _TG_TEXT_LIMIT - len(promo) - len(wrapper)
+    if room < 40:
+        return promo
+    if len(inner) > room:
+        inner = inner[: room - 1].rstrip() + "…"
+    return f"{promo}\n\n<blockquote expandable>{inner}</blockquote>"
+
+
 def _message_url(channel_id: Any, message_id: int) -> str:
     """Private/public channel post link: https://t.me/c/<id>/<message_id>."""
     cid = int(channel_id)
@@ -112,7 +139,7 @@ def _message_url(channel_id: Any, message_id: int) -> str:
 
 
 def _with_post_urls(telegram: dict[str, Any]) -> dict[str, Any]:
-    channel_id = telegram.get("channel_id") or config.CATALOG_CHANNEL_ID
+    channel_id = telegram.get("channel_id")
     promo_ids = [int(x) for x in (telegram.get("promo_message_ids") or [])]
     full_ids = [int(x) for x in (telegram.get("full_message_ids") or [])]
     promo_urls = [_message_url(channel_id, mid) for mid in promo_ids] if channel_id else []
@@ -149,62 +176,83 @@ def _save_public_state(
     return data["telegram"]
 
 
-def post_course(path: Path, *, bot_username: str, force: bool = False) -> bool:
-    if config.CATALOG_CHANNEL_ID is None:
-        raise SystemExit("Set CATALOG_CHANNEL_ID in .env")
-    data = load_course(path)
-    telegram = data.get("telegram") or {}
-    promo_text, full_text = _promo_and_full_texts(data)
-    markup = _order_markup(bot_username, str(data["slug"]))
-    if telegram.get("promo_message_ids") and not force:
-        existing_messages = [
-            *((message_id, promo_text) for message_id in telegram["promo_message_ids"]),
-            *((message_id, full_text) for message_id in telegram.get("full_message_ids") or []),
-        ]
-        for message_id, text in existing_messages:
+def send_catalog_post(
+    *,
+    token: str,
+    chat_id: int,
+    bot_username: str,
+    course_data: dict[str, Any],
+    invite_link: str = "",
+    discussion_group_id: int | None = None,
+    existing: dict[str, Any] | None = None,
+    force: bool = False,
+) -> tuple[dict[str, Any], bool]:
+    """One expandable channel message. Skip send if this chat already has promo ids."""
+    existing = dict(existing or {})
+    promo_text, full_text = _promo_and_full_texts(course_data)
+    post_text = _channel_post_text(promo_text, full_text)
+    slug = str(course_data.get("slug") or "")
+    markup = _order_markup(bot_username, slug)
+    payload = _message_payload(post_text, markup, chat_id=chat_id)
+    promo_ids = [int(x) for x in (existing.get("promo_message_ids") or [])]
+    posted_chat = existing.get("channel_id")
+    same_chat = posted_chat is not None and int(posted_chat) == int(chat_id)
+    if promo_ids and same_chat and not force:
+        for message_id in promo_ids:
             try:
                 _bot_call(
                     "editMessageText",
-                    {**_message_payload(text, markup), "message_id": message_id},
+                    {**payload, "message_id": message_id},
+                    token=token,
                 )
             except RuntimeError as exc:
                 if "message is not modified" not in str(exc):
                     raise
-        if not telegram.get("full_message_ids"):
-            full = _bot_call("sendMessage", _message_payload(full_text, markup))
-            telegram["full_message_ids"] = [full["message_id"]]
-        if not telegram.get("channel_id"):
-            telegram["channel_id"] = config.CATALOG_CHANNEL_ID
-        saved = _save_public_state(path, data, telegram, promo_text, full_text)
-        _print_post_links(path, saved, action="updated already posted")
-        return False
+        telegram = _with_post_urls(
+            {
+                **existing,
+                "channel_id": chat_id,
+                "discussion_group_id": discussion_group_id
+                if discussion_group_id is not None
+                else existing.get("discussion_group_id"),
+                "invite_link": invite_link or existing.get("invite_link"),
+                "promo_message_ids": promo_ids,
+                "full_message_ids": [],
+            }
+        )
+        return telegram, False
 
-    telegram = {
-        **telegram,
-        "channel_id": config.CATALOG_CHANNEL_ID,
-        "discussion_group_id": config.CATALOG_DISCUSSION_GROUP_ID,
-        "invite_link": config.CATALOG_INVITE_LINK or None,
-        "promo_message_ids": list(telegram.get("promo_message_ids") or []),
-        "full_message_ids": list(telegram.get("full_message_ids") or []),
-    }
-    promo = _bot_call(
-        "sendMessage",
-        _message_payload(promo_text, markup),
+    sent = _bot_call("sendMessage", payload, token=token)
+    telegram = _with_post_urls(
+        {
+            "channel_id": chat_id,
+            "discussion_group_id": discussion_group_id,
+            "invite_link": invite_link or None,
+            "promo_message_ids": [int(sent["message_id"])],
+            "full_message_ids": [],
+        }
     )
-    telegram["promo_message_ids"] = list(
-        dict.fromkeys([*telegram["promo_message_ids"], promo["message_id"]])
+    return telegram, True
+
+
+def post_course(path: Path, *, bot_username: str, force: bool = False) -> bool:
+    if config.CATALOG_CHANNEL_ID is None:
+        raise SystemExit("Set CATALOG_CHANNEL_ID in .env")
+    data = load_course(path)
+    telegram, posted = send_catalog_post(
+        token=config.BOT_TOKEN,
+        chat_id=int(config.CATALOG_CHANNEL_ID),
+        bot_username=bot_username,
+        course_data=data,
+        invite_link=config.CATALOG_INVITE_LINK or "",
+        discussion_group_id=config.CATALOG_DISCUSSION_GROUP_ID,
+        existing=data.get("telegram") or {},
+        force=force,
     )
-    _save_public_state(path, data, telegram, promo_text, full_text)
-    full = _bot_call(
-        "sendMessage",
-        _message_payload(full_text, markup),
-    )
-    telegram["full_message_ids"] = list(
-        dict.fromkeys([*telegram["full_message_ids"], full["message_id"]])
-    )
+    promo_text, full_text = _promo_and_full_texts(data)
     saved = _save_public_state(path, data, telegram, promo_text, full_text)
-    _print_post_links(path, saved, action="posted")
-    return True
+    _print_post_links(path, saved, action="posted" if posted else "updated already posted")
+    return posted
 
 
 def post_all(

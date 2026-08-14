@@ -14,6 +14,9 @@ data/telegram_exports/
 # Local catalog course JSON
 data/catalog/categories/
 
+# Import payload with live bot tokens (keep example.json)
+scripts/telegram_catalog.flancki.json
+
 # Proxy pool credentials (host:port:user:pass)
 data/catalog/proxies.json
 

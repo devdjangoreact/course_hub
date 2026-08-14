@@ -24,7 +24,7 @@
               "stable_key": "example-course-1",
               "name": "Example Course",
               "description": "Description",
-              "category_id": 1,
+              "category_name": "Flancki",
               "price": "9.99",
               "link": "https://example.com/course",
               "is_active": true,
