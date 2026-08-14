@@ -36,7 +36,8 @@ def bot_username_from_host(host: str, base_domain: str) -> str | None:
     username = host[: -len(suffix)]
     if not username:
         return None
-    return username
+    # Telegram usernames allow `_` not `-`; CF/Vercel TLS often rejects `_` in the label.
+    return username.replace("-", "_")
 
 
 def resolve_base_domain(*, base_domain: str, backend_url: str) -> str:
@@ -47,4 +48,5 @@ def resolve_base_domain(*, base_domain: str, backend_url: str) -> str:
 
 
 def webhook_url_for_bot(*, username: str, base_domain: str, webhook_path: str) -> str:
-    return f"https://{username}.{base_domain}{webhook_path}"
+    label = normalize_bot_username(username).replace("_", "-")
+    return f"https://{label}.{base_domain}{webhook_path}"

@@ -32,3 +32,8 @@ def test_webhook_url_for_bot() -> None:
         webhook_url_for_bot(username="shop", base_domain="example.com", webhook_path="/api/telegram/webhook")
         == "https://shop.example.com/api/telegram/webhook"
     )
+    assert (
+        webhook_url_for_bot(username="safesolo_bot", base_domain="example.com", webhook_path="/api/telegram/webhook")
+        == "https://safesolo-bot.example.com/api/telegram/webhook"
+    )
+    assert bot_username_from_host("safesolo-bot.example.com", "example.com") == "safesolo_bot"

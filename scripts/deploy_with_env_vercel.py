@@ -4,11 +4,17 @@
 Does not print secret values. Requires: gh auth login.
 
 Optional domain setup (Proxied + SSL Full strict) when CLOUDFLARE_API_TOKEN is set:
-  CUSTOM_DOMAIN=ddnsteltonicka.pp.ua
+  CUSTOM_DOMAIN=codehelp.pp.ua
+  BASE_DOMAIN=codehelp.pp.ua   # webhook hosts: https://{bot_username}.{BASE_DOMAIN}/api/telegram/webhook
   CLOUDFLARE_API_TOKEN=...
   CLOUDFLARE_ACCOUNT_ID=...   # optional
   CLOUDFLARE_ZONE_ID=...      # optional
   CUSTOM_DOMAIN_WWW=true      # optional, also configure www
+
+Each run also adds Vercel + Cloudflare wildcard `*.CUSTOM_DOMAIN` so bot subdomains
+(e.g. safesolo_bot.codehelp.pp.ua) hit Cloudflare → Vercel, and removes a stale
+catch-all A/AAAA (63.185.31.246) that would steal those labels. If Vercel Hobby
+rejects `*.domain`, the four known bot hostnames are added explicitly.
 
 Usage (from repo root):
   python scripts/deploy_with_env_vercel.py
@@ -43,6 +49,14 @@ FALSEY = {"false", "0", "no", "off"}
 TRUTHY = {"true", "1", "yes", "on"}
 DEFAULT_VERCEL_URL = "https://course-hub-six-sigma.vercel.app"
 VERCEL_CNAME = "cname.vercel-dns.com"
+STALE_CATCHALL_IP = "63.185.31.246"
+# Prod bot usernames (2026-08-14). Used only if Vercel rejects wildcard domains.
+BOT_WEBHOOK_HOSTS = (
+    "safesolo_bot",
+    "solopath_bot",
+    "vector_t_y_bot",
+    "prompt_d_bot",
+)
 
 
 def parse_env(raw: str) -> dict[str, str]:
@@ -234,6 +248,142 @@ def add_vercel_domain(token: str, org_id: str, project_id: str, domain: str) -> 
     raise RuntimeError(f"Vercel add domain failed: HTTP {status} {payload}")
 
 
+def _vercel_error_text(payload: Any) -> str:
+    if not isinstance(payload, dict):
+        return str(payload)
+    error = payload.get("error") or {}
+    if isinstance(error, dict):
+        return f"{error.get('code', '')} {error.get('message', '')}".strip()
+    return str(payload)
+
+
+def vercel_rejects_wildcard(status: int, payload: Any) -> bool:
+    text = _vercel_error_text(payload).lower()
+    return status in {400, 402, 403} and any(
+        needle in text
+        for needle in (
+            "hobby",
+            "wildcard",
+            "upgrade",
+            "pro plan",
+            "not available on",
+        )
+    )
+
+
+def list_cloudflare_dns_records(token: str, zone_id: str) -> list[dict[str, Any]]:
+    headers = cloudflare_headers(token)
+    records: list[dict[str, Any]] = []
+    page = 1
+    while True:
+        url = (
+            "https://api.cloudflare.com/client/v4/zones/"
+            f"{zone_id}/dns_records?"
+            + urllib.parse.urlencode({"per_page": "100", "page": str(page)})
+        )
+        status, payload = http_json("GET", url, headers=headers)
+        if status != 200 or not payload.get("success"):
+            raise RuntimeError(f"Cloudflare DNS list-all failed: HTTP {status} {payload}")
+        batch = payload.get("result") or []
+        records.extend(r for r in batch if isinstance(r, dict))
+        info = payload.get("result_info") or {}
+        total_pages = int(info.get("total_pages") or 1)
+        if page >= total_pages or not batch:
+            break
+        page += 1
+    return records
+
+
+def delete_stale_catchall_records(token: str, zone_id: str, zone_name: str) -> None:
+    """Remove wildcard A/AAAA/CNAME and any record still pointing at the old AWS IP."""
+    headers = cloudflare_headers(token)
+    zone_l = zone_name.lower()
+    wildcard_names = {"*", f"*.{zone_l}"}
+    for rec in list_cloudflare_dns_records(token, zone_id):
+        rtype = str(rec.get("type", "")).upper()
+        if rtype not in {"A", "AAAA", "CNAME"}:
+            continue
+        name = str(rec.get("name", "")).lower()
+        content = str(rec.get("content", "")).strip()
+        is_wildcard = name in wildcard_names
+        is_stale_ip = content == STALE_CATCHALL_IP
+        if not is_wildcard and not is_stale_ip:
+            continue
+        if (
+            rtype == "CNAME"
+            and "vercel-dns.com" in content.lower()
+        ):
+            continue
+        cid = rec.get("id")
+        if not cid:
+            continue
+        del_status, del_payload = http_json(
+            "DELETE",
+            f"https://api.cloudflare.com/client/v4/zones/{zone_id}/dns_records/{cid}",
+            headers=headers,
+        )
+        if del_status != 200 or not del_payload.get("success"):
+            raise RuntimeError(
+                f"Cloudflare DNS delete failed for {rtype} {name} ({content}): "
+                f"HTTP {del_status} {del_payload}"
+            )
+        print(f"OK  Removed conflicting {rtype} record: {name} -> {content}")
+
+
+def add_vercel_wildcard_or_hosts(
+    token: str, org_id: str, project_id: str, domain: str
+) -> None:
+    wildcard = f"*.{domain}"
+    url = (
+        f"https://api.vercel.com/v10/projects/{urllib.parse.quote(project_id)}/domains"
+        f"{vercel_team_qs(org_id)}"
+    )
+    status, payload = http_json(
+        "POST",
+        url,
+        headers=vercel_headers(token),
+        body={"name": wildcard},
+    )
+    if status in (200, 201):
+        print(f"OK  Vercel domain added: {wildcard}")
+        return
+    err = str(payload)
+    code = ""
+    if isinstance(payload, dict):
+        error = payload.get("error") or {}
+        if isinstance(error, dict):
+            code = str(error.get("code", ""))
+    if (
+        status == 409
+        or "already" in err.lower()
+        or "exist" in err.lower()
+        or code in {"domain_already_in_use", "domain_already_exists"}
+    ):
+        print(f"OK  Vercel domain already present: {wildcard}")
+        return
+    if vercel_rejects_wildcard(status, payload):
+        print(
+            f"WARNING: Vercel Hobby (or current plan) forbids {wildcard}: "
+            f"{_vercel_error_text(payload)}. Falling back to explicit bot hostnames."
+        )
+        add_explicit_bot_vercel_hosts(token, org_id, project_id, domain)
+        return
+    raise RuntimeError(f"Vercel add domain failed: HTTP {status} {payload}")
+
+
+def add_explicit_bot_vercel_hosts(
+    token: str, org_id: str, project_id: str, domain: str
+) -> None:
+    seen: set[str] = set()
+    for username in BOT_WEBHOOK_HOSTS:
+        # Vercel rejects `_` in domain labels (invalid_domain).
+        host = f"{username.replace('_', '-')}.{domain}"
+        if host in seen:
+            continue
+        seen.add(host)
+        add_vercel_domain(token, org_id, project_id, host)
+
+
 def vercel_recommended_cname(token: str, org_id: str, domain: str) -> str:
     url = (
         f"https://api.vercel.com/v6/domains/{urllib.parse.quote(domain)}/config"
@@ -370,6 +520,16 @@ def setup_custom_domain(keys: dict[str, str], *, include_www: bool) -> str:
         return ""
 
     print(f"Setting up custom domain (proxied): {domain}")
+    base_domain = keys.get("BASE_DOMAIN", "").strip()
+    if not base_domain:
+        print(
+            f"WARNING: BASE_DOMAIN is empty while CUSTOM_DOMAIN={domain}; "
+            "runtime setWebhook falls back to BACKEND_URL host. "
+            f"Set BASE_DOMAIN={domain} in .env.prod"
+        )
+    elif hostname_from_url(base_domain) != domain and base_domain.lower() != domain:
+        print(f"WARNING: BASE_DOMAIN host differs from CUSTOM_DOMAIN={domain}")
+
     zone = find_cloudflare_zone(
         token_cf,
         domain,
@@ -385,11 +545,22 @@ def setup_custom_domain(keys: dict[str, str], *, include_www: bool) -> str:
     project_id = keys["VERCEL_PROJECT_ID"].strip()
 
     add_vercel_domain(vercel_token, org_id, project_id, domain)
+    add_vercel_wildcard_or_hosts(vercel_token, org_id, project_id, domain)
+    add_explicit_bot_vercel_hosts(vercel_token, org_id, project_id, domain)
     cname_target = vercel_recommended_cname(vercel_token, org_id, domain)
+
+    delete_stale_catchall_records(token_cf, zone_id, zone_name)
     upsert_cloudflare_cname(
         token_cf,
         zone_id,
         name=domain,
+        content=cname_target,
+        proxied=True,
+    )
+    upsert_cloudflare_cname(
+        token_cf,
+        zone_id,
+        name=f"*.{domain}",
         content=cname_target,
         proxied=True,
     )
@@ -626,6 +797,13 @@ def main() -> int:
             file=sys.stderr,
         )
         return 1
+
+    custom_preview = resolve_custom_domain(keys)
+    if custom_preview and not keys.get("BASE_DOMAIN", "").strip():
+        print(
+            f"WARNING: BASE_DOMAIN is empty while CUSTOM_DOMAIN={custom_preview}; "
+            f"set BASE_DOMAIN={custom_preview} so setWebhook uses bot subdomains."
+        )
 
     custom_https = ""
     if not args.skip_domain:
