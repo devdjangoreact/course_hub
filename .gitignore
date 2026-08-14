@@ -17,6 +17,9 @@ data/catalog/categories/
 # Import payload with live bot tokens (keep example.json)
 scripts/telegram_catalog.flancki.json
 
+# Bot dumps with tokens / personal Telegram data
+scripts/bots/
+
 # Proxy pool credentials (host:port:user:pass)
 data/catalog/proxies.json
 

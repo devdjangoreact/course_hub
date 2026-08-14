@@ -109,7 +109,7 @@ def _promo_and_full_texts(data: dict[str, Any]) -> tuple[str, str]:
 
 
 def _channel_post_text(promo_text: str, full_text: str) -> str:
-    """One channel message: promo plus expandable 'Детально' (no second post)."""
+    """One channel message: promo plus expandable 'Подробнее' (no second post)."""
     promo = promo_text.strip()
     full = (
         full_text.strip()
@@ -119,7 +119,7 @@ def _channel_post_text(promo_text: str, full_text: str) -> str:
     )
     if not full or full == promo:
         return promo
-    inner = f"<b>Детально</b>\n\n{full}"
+    inner = f"<b>Подробнее</b>\n\n{full}"
     wrapper = "\n\n<blockquote expandable></blockquote>"
     room = _TG_TEXT_LIMIT - len(promo) - len(wrapper)
     if room < 40:
