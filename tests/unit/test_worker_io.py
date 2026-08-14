@@ -13,7 +13,6 @@ sys.path.insert(0, str(WORKER))
 
 from browser.models import ProxyCredentials  # noqa: E402
 from browser.nodriver_browser import chrome_proxy_server_arg  # noqa: E402
-from enrich_searxng.worker_job import destination_name  # noqa: E402
 from proxy_env import proxy_line_to_http_url, require_proxy_env  # noqa: E402
 from worker_orchestrator import plan_wave  # noqa: E402
 
@@ -29,10 +28,16 @@ def test_proxy_credentials_as_http_url_quotes():
 
 
 def test_destination_name_flancki():
+    pytest.importorskip("bs4")
+    from enrich_searxng.worker_job import destination_name
+
     assert destination_name(Path("/x/categories/flancki")) == "flancki"
 
 
 def test_destination_name_none_is_need_enrich():
+    pytest.importorskip("bs4")
+    from enrich_searxng.worker_job import destination_name
+
     assert destination_name(None) == "flancki_need_enrich"
 
 
