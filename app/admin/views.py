@@ -9,10 +9,7 @@ from app.infrastructure.db.models.category_translation import CategoryTranslatio
 from app.infrastructure.db.models.channel_course import ChannelCourseModel
 from app.infrastructure.db.models.course import CourseModel
 from app.infrastructure.db.models.course_translation import CourseTranslationModel
-from app.infrastructure.db.models.imported_catalog_item import ImportedCatalogItemModel
 from app.infrastructure.db.models.order import OrderModel
-from app.infrastructure.db.models.parser_job import ParserJobModel
-from app.infrastructure.db.models.parser_source import ParserSourceModel
 from app.infrastructure.db.models.payment_settings import PaymentSettingsModel
 from app.infrastructure.db.models.telegram_bot import TelegramBotModel
 from app.infrastructure.db.models.telegram_channel import TelegramChannelModel
@@ -146,7 +143,7 @@ class AppSettingsAdmin(ModelView, model=BotSettingsModel):
         BotSettingsModel.bot_token: "Telegram bot token",
         BotSettingsModel.admin_session_secret: "Admin session secret",
         BotSettingsModel.log_level: "Log level",
-        BotSettingsModel.extra: "Extra (languages, search, parser)",
+        BotSettingsModel.extra: "Extra (languages, search)",
     }
     form_columns = [
         BotSettingsModel.app_env,
@@ -284,45 +281,6 @@ class PaymentSettingsAdmin(ModelView, model=PaymentSettingsModel):
     icon = "fa-solid fa-credit-card"
 
 
-class ParserSourceAdmin(ModelView, model=ParserSourceModel):
-    column_list = [
-        ParserSourceModel.id,
-        ParserSourceModel.name,
-        ParserSourceModel.source_type,
-        ParserSourceModel.is_active,
-        ParserSourceModel.last_status,
-    ]
-    column_searchable_list = [ParserSourceModel.name, ParserSourceModel.url]
-    name = "Parser Source"
-    icon = "fa-solid fa-download"
-
-
-class ParserJobAdmin(ModelView, model=ParserJobModel):
-    column_list = [
-        ParserJobModel.id,
-        ParserJobModel.source_id,
-        ParserJobModel.status,
-        ParserJobModel.imported_count,
-        ParserJobModel.skipped_count,
-    ]
-    can_create = False
-    name = "Parser Job"
-    icon = "fa-solid fa-list-check"
-
-
-class ImportedCatalogItemAdmin(ModelView, model=ImportedCatalogItemModel):
-    column_list = [
-        ImportedCatalogItemModel.id,
-        ImportedCatalogItemModel.parser_job_id,
-        ImportedCatalogItemModel.item_type,
-        ImportedCatalogItemModel.language_code,
-        ImportedCatalogItemModel.status,
-    ]
-    can_create = False
-    name = "Imported Catalog Item"
-    icon = "fa-solid fa-inbox"
-
-
 class TelegramBotAdmin(ModelView, model=TelegramBotModel):
     category = "Telegram"
     column_list = [
@@ -349,7 +307,6 @@ class TelegramBotAdmin(ModelView, model=TelegramBotModel):
         ),
     }
     form_columns = [
-        TelegramBotModel.username,
         TelegramBotModel.token,
         TelegramBotModel.webhook_secret,
         TelegramBotModel.title,
@@ -358,8 +315,12 @@ class TelegramBotAdmin(ModelView, model=TelegramBotModel):
         TelegramBotModel.is_active,
     ]
     form_args = {
-        "username": {"description": "Telegram bot username without @ (also the subdomain)."},
-        "token": {"description": "Bot API token. Restart the app after create/update."},
+        "token": {
+            "description": (
+                "Bot API token. Username/subdomain is filled from Telegram getMe on save. "
+                "Restart the app after create/update."
+            ),
+        },
         "webhook_secret": {
             "description": "Optional per-bot webhook secret. Restart after change.",
         },
@@ -367,6 +328,18 @@ class TelegramBotAdmin(ModelView, model=TelegramBotModel):
     name = "Bot"
     name_plural = "Bots"
     icon = "fa-solid fa-robot"
+
+    async def on_model_change(
+        self, data: dict, model: TelegramBotModel, is_created: bool, request  # noqa: ANN001
+    ) -> None:
+        from app.bot.telegram_identity import fetch_bot_username
+
+        token = str(data.get("token") or model.token or "").strip()
+        if not token:
+            raise ValueError("Bot token is required")
+        model.username = await fetch_bot_username(token)
+        if not model.title:
+            model.title = model.username
 
 
 class TelegramChannelAdmin(ModelView, model=TelegramChannelModel):
@@ -424,9 +397,6 @@ ALL_VIEWS = [
     AdminUserAdmin,
     AppSettingsAdmin,
     PaymentSettingsAdmin,
-    ParserSourceAdmin,
-    ParserJobAdmin,
-    ImportedCatalogItemAdmin,
     TelegramBotAdmin,
     TelegramChannelAdmin,
     ChannelCourseAdmin,

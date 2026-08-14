@@ -1,0 +1,38 @@
+{
+  "bots": [
+    {
+      "token": "REPLACE_WITH_BOT_TOKEN",
+      "webhook_secret": "",
+      "title": "",
+      "notes": "",
+      "is_active": true,
+      "extra": {},
+      "channels": [
+        {
+          "telegram_chat_id": -1001234567890,
+          "discussion_group_id": -1001234567891,
+          "is_public": true,
+          "discussion_is_public": true,
+          "invite_link": "https://t.me/+channelInvite",
+          "discussion_invite_link": "https://t.me/+groupInvite",
+          "title": "Example channel",
+          "slug": "example",
+          "is_active": true,
+          "extra": {},
+          "courses": [
+            {
+              "stable_key": "example-course-1",
+              "name": "Example Course",
+              "description": "Description",
+              "category_id": 1,
+              "price": "9.99",
+              "link": "https://example.com/course",
+              "is_active": true,
+              "extra": {}
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

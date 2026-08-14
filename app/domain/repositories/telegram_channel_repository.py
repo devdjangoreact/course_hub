@@ -8,6 +8,11 @@ class TelegramChannelRepository(ABC):
     async def list_by_bot(self, bot_id: int) -> list[TelegramChannel]: ...
 
     @abstractmethod
+    async def get_by_bot_and_chat(
+        self, bot_id: int, telegram_chat_id: int
+    ) -> TelegramChannel | None: ...
+
+    @abstractmethod
     async def get(self, channel_id: int) -> TelegramChannel | None: ...
 
     @abstractmethod

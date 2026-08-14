@@ -6,14 +6,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.application.services.catalog_service import CatalogService
 from app.application.services.order_service import OrderService
-from app.application.services.parser_service import ParserService
 from app.application.services.runtime_settings import RuntimeSettings, load_runtime_settings
 from app.application.services.search_service import SearchService
 from app.container import (
     build_catalog_service,
     build_language_repository,
     build_order_service,
-    build_parser_service,
     build_search_service,
 )
 from app.core.config import Settings, get_settings
@@ -82,12 +80,7 @@ def get_order_service(
     return build_order_service(session, gateway)
 
 
-def get_parser_service(session: SessionDep) -> ParserService:
-    return build_parser_service(session)
-
-
 CatalogServiceDep = Annotated[CatalogService, Depends(get_catalog_service)]
 LanguageRepositoryDep = Annotated[LanguageRepository, Depends(get_language_repository)]
 SearchServiceDep = Annotated[SearchService, Depends(get_search_service)]
 OrderServiceDep = Annotated[OrderService, Depends(get_order_service)]
-ParserServiceDep = Annotated[ParserService, Depends(get_parser_service)]

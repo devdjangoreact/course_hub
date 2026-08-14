@@ -3,7 +3,6 @@ from sqlalchemy import func, select
 
 from app.core.config import Settings
 from app.core.database import Database
-from app.core.domain_host import normalize_bot_username
 from app.domain.entities.admin_user import AdminUser
 from app.domain.entities.bot_settings import BotSettings
 from app.domain.entities.payment_settings import PaymentSettings
@@ -58,24 +57,14 @@ async def _ensure_default_admin(session, settings: Settings) -> None:
 
 
 async def _resolve_seed_username(token: str, settings: Settings) -> str | None:
-    if settings.bot_username.strip():
-        return normalize_bot_username(settings.bot_username)
+    del settings  # username always from Telegram API
     try:
-        from aiogram import Bot
+        from app.bot.telegram_identity import fetch_bot_username
 
-        bot = Bot(token=token)
-        try:
-            me = await bot.get_me()
-        finally:
-            await bot.session.close()
+        return await fetch_bot_username(token)
     except Exception:
         logger.exception("Failed to resolve bot username via getMe; skip bots seed.")
         return None
-    username = getattr(me, "username", None)
-    if not username:
-        logger.warning("Telegram getMe returned no username; skip bots seed.")
-        return None
-    return normalize_bot_username(str(username))
 
 
 async def _ensure_legacy_bot(session, settings: Settings) -> None:
@@ -167,7 +156,6 @@ async def ensure_initial_data(database: Database, settings: Settings) -> None:
                         "search_rate_window_seconds": settings.search_rate_window_seconds,
                         "search_suggestion_min_chars": settings.search_suggestion_min_chars,
                         "search_suggestion_limit": settings.search_suggestion_limit,
-                        "parser_request_timeout_seconds": settings.parser_request_timeout_seconds,
                     },
                 )
             )

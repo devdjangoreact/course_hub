@@ -33,6 +33,16 @@ class SqlTelegramChannelRepository(TelegramChannelRepository):
         rows = (await self._session.execute(stmt)).scalars().all()
         return [_to_entity(row) for row in rows]
 
+    async def get_by_bot_and_chat(
+        self, bot_id: int, telegram_chat_id: int
+    ) -> TelegramChannel | None:
+        stmt = select(TelegramChannelModel).where(
+            TelegramChannelModel.bot_id == bot_id,
+            TelegramChannelModel.telegram_chat_id == telegram_chat_id,
+        )
+        model = (await self._session.execute(stmt)).scalar_one_or_none()
+        return _to_entity(model) if model is not None else None
+
     async def get(self, channel_id: int) -> TelegramChannel | None:
         model = await self._session.get(TelegramChannelModel, channel_id)
         return _to_entity(model) if model is not None else None

@@ -11,6 +11,9 @@ class TelegramBotRepository(ABC):
     async def get_by_username(self, username: str) -> TelegramBot | None: ...
 
     @abstractmethod
+    async def get_by_token(self, token: str) -> TelegramBot | None: ...
+
+    @abstractmethod
     async def get(self, bot_id: int) -> TelegramBot | None: ...
 
     @abstractmethod

@@ -7,7 +7,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 
 from app.admin.setup import setup_admin
-from app.api.routers import catalog, health, orders, parser
+from app.api.routers import catalog, health, orders
 from app.api.routers.telegram import build_telegram_router
 from app.application.errors import (
     ApplicationError,
@@ -88,7 +88,6 @@ def create_app() -> FastAPI:
     app.include_router(health.router)
     app.include_router(catalog.router)
     app.include_router(orders.router)
-    app.include_router(parser.router)
     app.include_router(build_telegram_router(settings.telegram_webhook_path))
 
     app.add_exception_handler(ApplicationError, _application_error_handler)

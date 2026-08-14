@@ -38,7 +38,6 @@ class RuntimeSettings:
     search_rate_window_seconds: int
     search_suggestion_min_chars: int
     search_suggestion_limit: int
-    parser_request_timeout_seconds: int
     is_sqlite: bool
 
     @classmethod
@@ -70,9 +69,6 @@ class RuntimeSettings:
             ),
             search_suggestion_limit=_extra_int(
                 extra, "search_suggestion_limit", env.search_suggestion_limit
-            ),
-            parser_request_timeout_seconds=_extra_int(
-                extra, "parser_request_timeout_seconds", env.parser_request_timeout_seconds
             ),
             is_sqlite=env.is_sqlite,
         )

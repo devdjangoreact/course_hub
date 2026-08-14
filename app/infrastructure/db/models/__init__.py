@@ -6,10 +6,7 @@ from app.infrastructure.db.models.category_translation import CategoryTranslatio
 from app.infrastructure.db.models.channel_course import ChannelCourseModel
 from app.infrastructure.db.models.course import CourseModel
 from app.infrastructure.db.models.course_translation import CourseTranslationModel
-from app.infrastructure.db.models.imported_catalog_item import ImportedCatalogItemModel
 from app.infrastructure.db.models.order import OrderModel
-from app.infrastructure.db.models.parser_job import ParserJobModel
-from app.infrastructure.db.models.parser_source import ParserSourceModel
 from app.infrastructure.db.models.payment_settings import PaymentSettingsModel
 from app.infrastructure.db.models.supported_language import SupportedLanguageModel
 from app.infrastructure.db.models.telegram_bot import TelegramBotModel
@@ -24,10 +21,7 @@ __all__ = [
     "ChannelCourseModel",
     "CourseModel",
     "CourseTranslationModel",
-    "ImportedCatalogItemModel",
     "OrderModel",
-    "ParserJobModel",
-    "ParserSourceModel",
     "PaymentSettingsModel",
     "SupportedLanguageModel",
     "TelegramBotModel",

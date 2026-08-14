@@ -33,6 +33,11 @@ class SqlTelegramBotRepository(TelegramBotRepository):
         model = (await self._session.execute(stmt)).scalar_one_or_none()
         return _to_entity(model) if model is not None else None
 
+    async def get_by_token(self, token: str) -> TelegramBot | None:
+        stmt = select(TelegramBotModel).where(TelegramBotModel.token == token)
+        model = (await self._session.execute(stmt)).scalar_one_or_none()
+        return _to_entity(model) if model is not None else None
+
     async def get(self, bot_id: int) -> TelegramBot | None:
         model = await self._session.get(TelegramBotModel, bot_id)
         return _to_entity(model) if model is not None else None

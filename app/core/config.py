@@ -58,7 +58,6 @@ class Settings(BaseSettings):
     default_language: str = "ru"
     search_suggestion_min_chars: int = 3
     search_suggestion_limit: int = 5
-    parser_request_timeout_seconds: int = 10
 
     smtp_host: str = ""
     smtp_port: int = 587

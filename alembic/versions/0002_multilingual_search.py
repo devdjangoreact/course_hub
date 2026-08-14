@@ -1,4 +1,4 @@
-"""multilingual catalog and parser workflow
+"""multilingual catalog and search
 
 Revision ID: 0002_multilingual_search
 Revises: 0001_initial
@@ -21,17 +21,6 @@ _JSON_DEFAULT = sa.text("'{}'")
 
 def _extra() -> sa.Column:
     return sa.Column("extra", sa.JSON(), server_default=_JSON_DEFAULT, nullable=False)
-
-
-def _timestamps() -> list[sa.Column]:
-    return [
-        sa.Column(
-            "created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False
-        ),
-        sa.Column(
-            "updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False
-        ),
-    ]
 
 
 def upgrade() -> None:
@@ -90,71 +79,6 @@ def upgrade() -> None:
     )
     op.create_index("ix_course_translations_name", "course_translations", ["name"])
 
-    op.create_table(
-        "parser_sources",
-        sa.Column("id", sa.Integer(), primary_key=True),
-        sa.Column("name", sa.String(), nullable=False, unique=True),
-        sa.Column("source_type", sa.String(), nullable=False),
-        sa.Column("url", sa.String(), nullable=False),
-        sa.Column("is_active", sa.Boolean(), nullable=False, server_default=sa.true()),
-        sa.Column("last_status", sa.String(), nullable=True),
-        _extra(),
-        *_timestamps(),
-    )
-    op.create_index("ix_parser_sources_name", "parser_sources", ["name"])
-    op.create_index("ix_parser_sources_source_type", "parser_sources", ["source_type"])
-    op.create_index("ix_parser_sources_is_active", "parser_sources", ["is_active"])
-
-    op.create_table(
-        "parser_jobs",
-        sa.Column("id", sa.Integer(), primary_key=True),
-        sa.Column("source_id", sa.Integer(), sa.ForeignKey("parser_sources.id"), nullable=False),
-        sa.Column("status", sa.String(), nullable=False, server_default="pending"),
-        sa.Column("started_at", sa.DateTime(timezone=True), nullable=True),
-        sa.Column("finished_at", sa.DateTime(timezone=True), nullable=True),
-        sa.Column("imported_count", sa.Integer(), nullable=False, server_default="0"),
-        sa.Column("skipped_count", sa.Integer(), nullable=False, server_default="0"),
-        sa.Column("error_summary", sa.String(), nullable=True),
-        _extra(),
-        *_timestamps(),
-    )
-    op.create_index("ix_parser_jobs_source_id", "parser_jobs", ["source_id"])
-    op.create_index("ix_parser_jobs_status", "parser_jobs", ["status"])
-
-    op.create_table(
-        "imported_catalog_items",
-        sa.Column("id", sa.Integer(), primary_key=True),
-        sa.Column("parser_job_id", sa.Integer(), sa.ForeignKey("parser_jobs.id"), nullable=False),
-        sa.Column("item_type", sa.String(), nullable=False),
-        sa.Column("external_id", sa.String(), nullable=True),
-        sa.Column("source_url", sa.String(), nullable=True),
-        sa.Column("fingerprint", sa.String(), nullable=False),
-        sa.Column("language_code", sa.String(), nullable=False),
-        sa.Column("payload", sa.JSON(), server_default=_JSON_DEFAULT, nullable=False),
-        sa.Column("status", sa.String(), nullable=False, server_default="draft"),
-        sa.Column(
-            "matched_category_id", sa.Integer(), sa.ForeignKey("categories.id"), nullable=True
-        ),
-        sa.Column("matched_course_id", sa.Integer(), sa.ForeignKey("courses.id"), nullable=True),
-        _extra(),
-        *_timestamps(),
-        sa.UniqueConstraint("parser_job_id", "fingerprint"),
-    )
-    op.create_index(
-        "ix_imported_catalog_items_parser_job_id", "imported_catalog_items", ["parser_job_id"]
-    )
-    op.create_index("ix_imported_catalog_items_item_type", "imported_catalog_items", ["item_type"])
-    op.create_index(
-        "ix_imported_catalog_items_external_id", "imported_catalog_items", ["external_id"]
-    )
-    op.create_index(
-        "ix_imported_catalog_items_fingerprint", "imported_catalog_items", ["fingerprint"]
-    )
-    op.create_index(
-        "ix_imported_catalog_items_language_code", "imported_catalog_items", ["language_code"]
-    )
-    op.create_index("ix_imported_catalog_items_status", "imported_catalog_items", ["status"])
-
     if op.get_bind().dialect.name == "sqlite":
         op.execute(
             """
@@ -167,9 +91,6 @@ def upgrade() -> None:
 def downgrade() -> None:
     if op.get_bind().dialect.name == "sqlite":
         op.execute("DROP TABLE IF EXISTS localized_catalog_fts")
-    op.drop_table("imported_catalog_items")
-    op.drop_table("parser_jobs")
-    op.drop_table("parser_sources")
     op.drop_table("course_translations")
     op.drop_table("category_translations")
     op.drop_table("supported_languages")
