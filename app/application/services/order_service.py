@@ -11,18 +11,11 @@ from app.domain.repositories.course_repository import CourseRepository
 from app.domain.repositories.order_repository import OrderRepository
 from app.domain.repositories.payment_gateway import PaymentGateway
 from app.domain.repositories.payment_settings_repository import PaymentSettingsRepository
-from app.infrastructure.payments.lava_helpers import lava_offer_id, payment_email
 
 _RESULT_TO_STATUS: dict[str, OrderStatus] = {
     "succeeded": OrderStatus.PAID,
     "failed": OrderStatus.FAILED,
     "cancelled": OrderStatus.CANCELLED,
-}
-
-_LAVA_EVENT_TO_RESULT: dict[str, str] = {
-    "payment.success": "succeeded",
-    "payment.failed": "failed",
-    "payment.cancelled": "cancelled",
 }
 
 
@@ -72,15 +65,8 @@ class OrderService:
             raise NotFoundError("Course not found")
         assert user.id is not None
         settings = await self._settings()
-        offer_id: str | None = None
-        buyer_email: str | None = None
-        if settings.provider == "lava":
-            offer_id = lava_offer_id(course.extra)
-            if offer_id is None:
-                raise ValidationError("Course is not configured for lava payments")
-            buyer_email = payment_email(user.extra)
-            if buyer_email is None:
-                raise ValidationError("Buyer email is required for lava payments")
+        raw_email = user.extra.get("payment_email")
+        buyer_email = raw_email.strip() if isinstance(raw_email, str) and raw_email.strip() else None
         order = await self._orders.add(
             Order(
                 id=None,
@@ -95,7 +81,6 @@ class OrderService:
         intent = await self._gateway.create_payment(
             order,
             settings,
-            lava_offer_id_value=offer_id,
             buyer_email=buyer_email,
         )
         order.payment_reference = intent.payment_reference
@@ -134,25 +119,6 @@ class OrderService:
     async def verify_webhook(self, payload: bytes, signature: str) -> bool:
         return self._gateway.verify_signature(payload, signature, await self._settings())
 
-    async def verify_lava_webhook(self, api_key: str) -> bool:
-        settings = await self._settings()
-        secret = settings.secret_key or ""
-        if not secret or not api_key:
-            return False
-        return hmac.compare_digest(api_key, secret)
-
-    async def confirm_lava_webhook(
-        self, payment_reference: str, event_type: str
-    ) -> tuple[Order, bool]:
-        result = _LAVA_EVENT_TO_RESULT.get(event_type)
-        if result is None:
-            raise ValidationError("Unknown lava event type")
-        return await self.confirm_payment(payment_reference, result)
-
-    async def uses_lava_provider(self) -> bool:
-        settings = await self._settings()
-        return settings.provider == "lava"
-
     async def uses_atlos_provider(self) -> bool:
         settings = await self._settings()
         return settings.provider == "atlos"
@@ -175,3 +141,18 @@ class OrderService:
             return order, False
         order.status = status
         return await self._orders.update(order), True
+
+    async def get_order_by_payment_reference(self, payment_reference: str) -> Order:
+        order = await self._orders.get_by_payment_reference(payment_reference)
+        if order is None:
+            raise NotFoundError("Order not found")
+        return order
+
+    async def verify_simulate_pay(self, reference: str, sig: str) -> Order:
+        from app.infrastructure.payments.simulated_gateway import simulate_pay_signature
+
+        settings = await self._settings()
+        expected = simulate_pay_signature(settings.secret_key or "", reference)
+        if not sig or not hmac.compare_digest(expected, sig):
+            raise NotFoundError("Order not found")
+        return await self.get_order_by_payment_reference(reference)

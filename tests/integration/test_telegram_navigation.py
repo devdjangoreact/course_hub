@@ -9,12 +9,7 @@ from app.application.errors import NotFoundError, RateLimitedError, ValidationEr
 from app.application.services.catalog_service import LocalizedCategory, LocalizedCourse
 from app.application.services.localization_service import LocalizationService
 from app.bot.handlers.categories import show_categories, show_course, show_courses
-from app.bot.handlers.order import (
-    change_payment_email,
-    create_order,
-    receive_payment_email,
-    use_saved_payment_email,
-)
+from app.bot.handlers.order import create_order
 from app.bot.handlers.search import prompt_search, run_search
 from app.bot.handlers.start import (
     handle_help,
@@ -23,7 +18,7 @@ from app.bot.handlers.start import (
     handle_language_selected,
     handle_start,
 )
-from app.bot.states import OrderStates, SearchStates
+from app.bot.states import SearchStates
 from app.domain.entities.bot_user import BotUser
 from app.domain.entities.order import Order
 from app.domain.entities.order_status import OrderStatus
@@ -145,9 +140,6 @@ class FakeOrders:
         del telegram_id, course_id
         return self.paid
 
-    async def uses_lava_provider(self) -> bool:
-        return self.provider == "lava"
-
     async def uses_atlos_provider(self) -> bool:
         return self.provider == "atlos"
 
@@ -174,7 +166,7 @@ class FakeOrders:
             intent = PaymentIntent(
                 "sim_abc",
                 "pay",
-                "https://hub.example/api/payments/simulate?reference=sim_abc&result=succeeded",
+                "https://hub.example/api/payments/simulate/pay?reference=sim_abc&sig=deadbeef",
             )
         return order, intent
 
@@ -306,18 +298,18 @@ async def test_simulated_and_atlos_order_pay_buttons(nav: tuple) -> None:
 
     sim = FakeCallback("order:7", message)
     await create_order(
-        sim, _fsm(), FakeOrders("simulated"), catalog, FakeRuntime(), users, localization
+        sim, FakeOrders("simulated"), catalog, FakeRuntime(), users, localization
     )
     assert "Тестова оплата" in message.answers[-1]
     assert (
         message.markups[-1]
         .inline_keyboard[0][0]
-        .url.endswith("/api/payments/simulate?reference=sim_abc&result=succeeded")
+        .url.endswith("/api/payments/simulate/pay?reference=sim_abc&sig=deadbeef")
     )
 
     atlos = FakeCallback("order:7", message)
     await create_order(
-        atlos, _fsm(), FakeOrders("atlos"), catalog, FakeRuntime(), users, localization
+        atlos, FakeOrders("atlos"), catalog, FakeRuntime(), users, localization
     )
     assert "atlos.io" in message.answers[-1]
     assert message.markups[-1].inline_keyboard[0][0].url == "https://atlos.io/payment/inv1"
@@ -341,7 +333,6 @@ async def test_returning_user_clicks_every_menu_path_to_pay(nav: tuple) -> None:
 
     await create_order(
         FakeCallback("order:7", message),
-        _fsm(),
         orders,
         catalog,
         FakeRuntime(),
@@ -349,7 +340,7 @@ async def test_returning_user_clicks_every_menu_path_to_pay(nav: tuple) -> None:
         localization,
     )
     pay = message.markups[-1].inline_keyboard[0][0]
-    assert pay.url.endswith("result=succeeded")
+    assert pay.url.endswith("sig=deadbeef")
     assert pay.text == "Оплатити"
 
     await prompt_search(FakeCallback("menu:search", message), _fsm(), users, localization)
@@ -360,65 +351,11 @@ async def test_returning_user_clicks_every_menu_path_to_pay(nav: tuple) -> None:
 
 
 @pytest.mark.asyncio
-async def test_lava_email_confirm_change_and_typed_email_pay(nav: tuple) -> None:
-    users, localization, catalog, message = nav
-    await users.upsert(
-        BotUser(
-            id=None,
-            telegram_id=42,
-            username="nav",
-            preferred_language="uk",
-            extra={"payment_email": "old@example.com"},
-        )
-    )
-    lava = FakeOrders("lava")
-    state = _fsm()
-
-    await create_order(
-        FakeCallback("order:7", message),
-        state,
-        lava,
-        catalog,
-        FakeRuntime(),
-        users,
-        localization,
-    )
-    assert _callbacks(message.markups[-1]) == ["order:email:use:7", "order:email:change:7"]
-
-    await use_saved_payment_email(
-        FakeCallback("order:email:use:7", message),
-        catalog,
-        lava,
-        FakeRuntime(),
-        users,
-        localization,
-    )
-    assert message.markups[-1].inline_keyboard[0][0].url.endswith("result=succeeded")
-
-    await change_payment_email(
-        FakeCallback("order:email:change:7", message),
-        state,
-        users,
-        localization,
-    )
-    assert await state.get_state() == OrderStates.awaiting_payment_email.state
-
-    typed = FakeMessage("buyer@example.com")
-    await receive_payment_email(
-        typed, state, lava, catalog, FakeRuntime(), users, localization
-    )
-    assert users.users[42].extra["payment_email"] == "buyer@example.com"
-    assert typed.markups[-1].inline_keyboard[0][0].url.endswith("result=succeeded")
-    assert await state.get_state() is None
-
-
-@pytest.mark.asyncio
 async def test_order_payment_error_is_sent_in_chat(nav: tuple) -> None:
     users, localization, catalog, message = nav
     await users.upsert(BotUser(id=None, telegram_id=42, username="nav", preferred_language="uk"))
     await create_order(
         FakeCallback("order:7", message),
-        _fsm(),
         FakeOrders(
             "atlos",
             create_error=ValidationError("Payment provider is temporarily unavailable"),

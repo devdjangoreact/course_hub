@@ -8,8 +8,21 @@ from app.domain.entities.payment_settings import PaymentSettings
 from app.domain.repositories.payment_gateway import PaymentGateway
 
 
+def simulate_pay_signature(secret: str, reference: str) -> str:
+    return hmac.new(
+        (secret or "simulated").encode(),
+        f"simulate-pay:{reference}".encode(),
+        hashlib.sha256,
+    ).hexdigest()
+
+
+def simulate_pay_url(backend_url: str, secret: str, reference: str) -> str:
+    sig = simulate_pay_signature(secret, reference)
+    return f"{backend_url.rstrip('/')}/api/payments/simulate/pay?reference={reference}&sig={sig}"
+
+
 class SimulatedPaymentGateway(PaymentGateway):
-    """Phase-1 gateway: issues a reference and a simulate URL; verifies an HMAC signature."""
+    """Issues a hosted test-pay page (same UX as Atlos: HTTPS GET, then Pay)."""
 
     def __init__(self, backend_url: str) -> None:
         self._backend_url = backend_url.rstrip("/")
@@ -19,16 +32,14 @@ class SimulatedPaymentGateway(PaymentGateway):
         order: Order,
         settings: PaymentSettings,
         *,
-        lava_offer_id_value: str | None = None,
         buyer_email: str | None = None,
     ) -> PaymentIntent:
+        del buyer_email
         reference = f"sim_{uuid.uuid4().hex}"
-        pay_url = (
-            f"{self._backend_url}/api/payments/simulate?reference={reference}&result=succeeded"
-        )
+        pay_url = simulate_pay_url(self._backend_url, settings.secret_key or "", reference)
         instructions = (
             f"Order #{order.id} created for {order.amount} {settings.currency}. "
-            "Complete the simulated payment using the provided link."
+            "Complete the test payment using the provided link."
         )
         return PaymentIntent(
             payment_reference=reference, instructions=instructions, pay_url=pay_url

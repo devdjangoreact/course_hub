@@ -6,8 +6,8 @@ from fastapi import APIRouter, Header, HTTPException, Query, Request, status
 from fastapi.responses import HTMLResponse
 
 from app.api.deps import CatalogServiceDep, OrderServiceDep, SettingsDep
+from app.application.errors import NotFoundError
 from app.api.schemas.atlos_webhook import AtlosWebhookIn
-from app.api.schemas.lava_webhook import LavaWebhookIn
 from app.api.schemas.order import OrderCreate, OrderCreatedOut, OrderOut, PaymentOut
 from app.api.schemas.payment import PaymentWebhookIn
 
@@ -97,9 +97,7 @@ async def order_checkout_page(
             category_name = category.name
             break
     payment_service = (
-        "lava.top"
-        if await service.uses_lava_provider()
-        else ("atlos.io" if await service.uses_atlos_provider() else "Тестова оплата")
+        "atlos.io" if await service.uses_atlos_provider() else "Тестова оплата"
     )
     html = _checkout_page_html(
         order_id=order_id,
@@ -111,26 +109,6 @@ async def order_checkout_page(
         pay_url=pay_url,
     )
     return HTMLResponse(content=html)
-
-
-@router.post("/payments/lava/webhook")
-async def lava_payment_webhook(
-    request: Request,
-    payload: LavaWebhookIn,
-    service: OrderServiceDep,
-    x_api_key: Annotated[str, Header(alias="X-Api-Key")] = "",
-) -> dict[str, bool]:
-    if not await service.verify_lava_webhook(x_api_key):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid API key")
-    order, applied = await service.confirm_lava_webhook(payload.contract_id, payload.event_type)
-    if applied:
-        user = await service.get_order_user(order)
-        bot_app = getattr(request.app.state, "bot_app", None)
-        if order.id is not None and bot_app is not None:
-            await bot_app.notify_payment_status(
-                user.telegram_id, order.id, order.status.value, bot_id=order.bot_id
-            )
-    return {"ok": True}
 
 
 @router.post("/payments/atlos/webhook")
@@ -176,6 +154,107 @@ async def payment_webhook(
                 user.telegram_id, order.id, order.status.value, bot_id=order.bot_id
             )
     return {"ok": True}
+
+
+def _simulate_pay_page_html(
+    *,
+    order_id: int,
+    amount: str,
+    currency: str,
+    reference: str,
+    sig: str,
+    paid: bool,
+) -> str:
+    if paid:
+        body = f"<h1>Замовлення #{order_id}</h1><p>Оплату підтверджено.</p>"
+    else:
+        body = f"""
+  <h1>Замовлення #{order_id}</h1>
+  <dl>
+    <dt>Сервіс оплати</dt><dd>Тестова оплата</dd>
+    <dt>Сума</dt><dd>{escape(amount)} {escape(currency)}</dd>
+  </dl>
+  <form method="post" action="/api/payments/simulate/pay?reference={escape(reference)}&amp;sig={escape(sig)}">
+    <button class="btn" type="submit">Оплатити</button>
+  </form>"""
+    return f"""<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Оплата замовлення #{order_id}</title>
+  <style>
+    body {{ font-family: system-ui, sans-serif; max-width: 32rem; margin: 2rem auto; padding: 0 1rem; }}
+    h1 {{ font-size: 1.25rem; }}
+    dl {{ line-height: 1.6; }}
+    dt {{ color: #555; margin-top: 0.5rem; }}
+    dd {{ margin: 0 0 0.25rem 0; font-weight: 600; }}
+    button.btn, a.btn {{
+      display: inline-block; margin-top: 1.5rem; padding: 0.75rem 1.25rem;
+      background: #2481cc; color: #fff; text-decoration: none; border-radius: 8px; border: 0;
+      font-size: 1rem; cursor: pointer;
+    }}
+  </style>
+</head>
+<body>
+{body}
+</body>
+</html>"""
+
+
+async def _simulate_pay_response(
+    request: Request,
+    service: OrderServiceDep,
+    reference: str,
+    sig: str,
+    *,
+    confirm: bool,
+) -> HTMLResponse:
+    try:
+        order = await service.verify_simulate_pay(reference, sig)
+    except NotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not found") from exc
+    paid = order.status.is_terminal
+    if confirm and not paid:
+        order, applied = await service.confirm_payment(reference, "succeeded")
+        paid = True
+        if applied:
+            user = await service.get_order_user(order)
+            bot_app = getattr(request.app.state, "bot_app", None)
+            if order.id is not None and bot_app is not None:
+                await bot_app.notify_payment_status(
+                    user.telegram_id, order.id, order.status.value, bot_id=order.bot_id
+                )
+    assert order.id is not None
+    html = _simulate_pay_page_html(
+        order_id=order.id,
+        amount=str(order.amount),
+        currency=await service.payment_currency(),
+        reference=reference,
+        sig=sig,
+        paid=paid,
+    )
+    return HTMLResponse(content=html)
+
+
+@router.get("/payments/simulate/pay", response_class=HTMLResponse)
+async def simulate_pay_page(
+    request: Request,
+    service: OrderServiceDep,
+    reference: Annotated[str, Query()],
+    sig: Annotated[str, Query()] = "",
+) -> HTMLResponse:
+    return await _simulate_pay_response(request, service, reference, sig, confirm=False)
+
+
+@router.post("/payments/simulate/pay", response_class=HTMLResponse)
+async def simulate_pay_confirm(
+    request: Request,
+    service: OrderServiceDep,
+    reference: Annotated[str, Query()],
+    sig: Annotated[str, Query()] = "",
+) -> HTMLResponse:
+    return await _simulate_pay_response(request, service, reference, sig, confirm=True)
 
 
 @router.post("/payments/simulate")

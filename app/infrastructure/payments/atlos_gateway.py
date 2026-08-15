@@ -24,7 +24,6 @@ class AtlosPaymentGateway(PaymentGateway):
         order: Order,
         settings: PaymentSettings,
         *,
-        lava_offer_id_value: str | None = None,
         buyer_email: str | None = None,
     ) -> PaymentIntent:
         if not settings.api_key:
@@ -47,7 +46,7 @@ class AtlosPaymentGateway(PaymentGateway):
             request_data["PostbackUrl"] = f"{self._backend_url}/api/payments/atlos/webhook"
 
         try:
-            async with httpx.AsyncClient(timeout=15.0) as client:
+            async with httpx.AsyncClient(timeout=3.0) as client:
                 response = await client.post(
                     "https://api.atlos.io/gateway/rest/Invoice/Create",
                     headers={"ApiSecret": settings.secret_key},

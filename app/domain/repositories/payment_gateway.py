@@ -12,7 +12,6 @@ class PaymentGateway(ABC):
         order: Order,
         settings: PaymentSettings,
         *,
-        lava_offer_id_value: str | None = None,
         buyer_email: str | None = None,
     ) -> PaymentIntent: ...
 

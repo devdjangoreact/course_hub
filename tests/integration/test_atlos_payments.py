@@ -169,3 +169,31 @@ async def test_atlos_webhook_idempotent(
         order = await SqlOrderRepository(session).get(body["order_id"])
         assert order is not None
         assert order.status == OrderStatus.PAID
+
+
+async def test_atlos_failure_falls_back_to_simulated_pay_page(
+    client: AsyncClient, app, seeded: dict[str, int], monkeypatch
+) -> None:
+    import httpx
+
+    class Boom:
+        def __init__(self, *args: object, **kwargs: object) -> None:
+            del args, kwargs
+
+        async def __aenter__(self) -> "Boom":
+            return self
+
+        async def __aexit__(self, *args: object) -> None:
+            del args
+
+        async def post(self, *args: object, **kwargs: object):
+            del args, kwargs
+            raise httpx.ConnectError("atlos down")
+
+    await _enable_atlos(app, monkeypatch)
+    monkeypatch.setattr("app.infrastructure.payments.atlos_gateway.httpx.AsyncClient", Boom)
+    created = await client.post(
+        "/api/orders", json={"telegram_id": 9010, "course_id": seeded["course_id"]}
+    )
+    assert created.status_code == 201
+    assert "/api/payments/simulate/pay?" in created.json()["payment"]["pay_url"]

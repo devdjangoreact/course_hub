@@ -118,3 +118,32 @@ async def test_simulate_payment_idempotent(client: AsyncClient, seeded: dict[str
 
     order = await client.get(f"/api/orders/{body['order_id']}")
     assert order.json()["status"] == "paid"
+
+
+async def test_simulated_pay_page_matches_atlos_hosted_flow(
+    client: AsyncClient, seeded: dict[str, int]
+) -> None:
+    from urllib.parse import parse_qs, urlparse
+
+    body = await _create_order(client, seeded["course_id"])
+    parsed = urlparse(str(body["payment"]["pay_url"]))
+    query = parse_qs(parsed.query)
+    assert parsed.path == "/api/payments/simulate/pay"
+    assert "sig" in query
+    assert "result" not in query
+
+    page = await client.get(
+        parsed.path, params={"reference": query["reference"][0], "sig": query["sig"][0]}
+    )
+    assert page.status_code == 200
+    assert "Оплатити" in page.text
+    pending = await client.get(f"/api/orders/{body['order_id']}")
+    assert pending.json()["status"] == "pending"
+
+    paid = await client.post(
+        parsed.path,
+        params={"reference": query["reference"][0], "sig": query["sig"][0]},
+    )
+    assert paid.status_code == 200
+    order = await client.get(f"/api/orders/{body['order_id']}")
+    assert order.json()["status"] == "paid"
