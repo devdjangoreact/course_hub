@@ -180,7 +180,7 @@ jobs:
             fi
             is_skipped "$key" && continue
             vercel env rm "$key" production --yes --token "$VERCEL_TOKEN" >/dev/null 2>&1 || true
-            printf '%s' "$value" | vercel env add "$key" production --token "$VERCEL_TOKEN" >/dev/null
+            printf '%s' "$value" | vercel env add "$key" production --sensitive --token "$VERCEL_TOKEN" >/dev/null
             echo "OK  $key"
             count=$((count + 1))
           done < .env.prod
