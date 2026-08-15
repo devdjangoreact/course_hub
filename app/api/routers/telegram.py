@@ -1,10 +1,11 @@
 from aiogram.types import Update
 from fastapi import APIRouter, Header, HTTPException, Request
+from loguru import logger
 
 from app.application.services.runtime_settings import load_runtime_settings
 from app.bot.registry import BotRegistry, RegisteredBot
 from app.core.config import TelegramMode
-from app.core.domain_host import bot_username_from_host, host_from_headers
+from app.core.domain_host import bot_username_from_host
 
 
 def build_telegram_router(webhook_path: str) -> APIRouter:
@@ -28,13 +29,20 @@ def build_telegram_router(webhook_path: str) -> APIRouter:
         if runtime is None:
             async with request.app.state.db.session_factory() as session:
                 runtime = await load_runtime_settings(session, settings)
-        base_domain = runtime.base_domain
-        host = host_from_headers(
-            host=request.headers.get("host") or "",
-            forwarded_host=request.headers.get("x-forwarded-host") or "",
+        request_host = request.headers.get("host") or ""
+        forwarded_host = request.headers.get("x-forwarded-host") or ""
+        registered, username = _registered_bot(
+            bot_app.registry,
+            _host_candidates(host=request_host, forwarded_host=forwarded_host),
+            runtime.base_domain,
         )
-        registered = _registered_bot(bot_app.registry, host, base_domain)
         if registered is None:
+            logger.warning(
+                "telegram webhook bot not found host={!r} forwarded={!r} username={!r}",
+                request_host,
+                forwarded_host,
+                username,
+            )
             raise HTTPException(status_code=404, detail="Telegram bot not found")
 
         if (
@@ -43,21 +51,53 @@ def build_telegram_router(webhook_path: str) -> APIRouter:
         ):
             raise HTTPException(status_code=401, detail="Invalid Telegram webhook secret")
 
-        payload = await request.json()
-        update = Update.model_validate(payload)
-        await bot_app.handle_update(update, registered=registered)
-        return {"ok": True}
+        update_id: object = None
+        try:
+            payload = await request.json()
+            update_id = payload.get("update_id") if isinstance(payload, dict) else None
+            logger.info(
+                "telegram webhook host={!r} forwarded={!r} username={!r} update_id={!r}",
+                request_host,
+                forwarded_host,
+                registered.username,
+                update_id,
+            )
+            update = Update.model_validate(payload, context={"bot": registered.aiogram_bot})
+            await bot_app.handle_update(update, registered=registered)
+            return {"ok": True}
+        except Exception:
+            logger.exception(
+                "telegram webhook failed host={!r} forwarded={!r} username={!r} update_id={!r}",
+                request_host,
+                forwarded_host,
+                registered.username,
+                update_id,
+            )
+            raise
 
     return telegram_router
 
 
-def _registered_bot(registry: BotRegistry, host: str, base_domain: str) -> RegisteredBot | None:
-    username = bot_username_from_host(host, base_domain)
-    if username is not None:
-        found = registry.get(username)
-        if found is not None:
-            return found
+def _host_candidates(*, host: str, forwarded_host: str) -> list[str]:
+    candidates: list[str] = []
+    for raw in (host, *(part.strip() for part in forwarded_host.split(",") if part.strip())):
+        value = raw.strip()
+        if value and value not in candidates:
+            candidates.append(value)
+    return candidates
+
+
+def _registered_bot(
+    registry: BotRegistry, hosts: list[str], base_domain: str
+) -> tuple[RegisteredBot | None, str | None]:
+    username: str | None = None
+    for host in hosts:
+        username = bot_username_from_host(host, base_domain)
+        if username is not None:
+            found = registry.get(username)
+            if found is not None:
+                return found, username
     active = registry.all_active()
     if len(active) == 1:
-        return active[0]
-    return None
+        return active[0], username
+    return None, username

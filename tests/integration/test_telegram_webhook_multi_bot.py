@@ -15,9 +15,11 @@ class _RecordingBotApp:
     def __init__(self) -> None:
         self.registry = BotRegistry()
         self.calls: list[str] = []
+        self.updates: list[object] = []
 
     async def handle_update(self, update, *, registered: RegisteredBot) -> None:  # noqa: ANN001
         self.calls.append(registered.username)
+        self.updates.append(update)
 
 
 async def test_webhook_routes_by_host(app: FastAPI, monkeypatch) -> None:
@@ -140,3 +142,92 @@ async def test_webhook_falls_back_to_single_bot_on_apex_host(app: FastAPI, monke
         )
         assert ok.status_code == 200
         assert fake.calls == ["onlybot"]
+
+
+def _two_bots(app: FastAPI) -> _RecordingBotApp:
+    fake = _RecordingBotApp()
+    fake.registry.upsert(
+        RegisteredBot(
+            bot_id=1,
+            username="alpha",
+            token="t1",
+            webhook_secret="",
+            aiogram_bot=_FakeAiogramBot(),  # type: ignore[arg-type]
+        )
+    )
+    fake.registry.upsert(
+        RegisteredBot(
+            bot_id=2,
+            username="beta",
+            token="t2",
+            webhook_secret="",
+            aiogram_bot=_FakeAiogramBot(),  # type: ignore[arg-type]
+        )
+    )
+    app.state.bot_app = fake  # type: ignore[assignment]
+    return fake
+
+
+async def test_webhook_keeps_bot_subdomain_when_forwarded_host_is_apex(
+    app: FastAPI, monkeypatch
+) -> None:
+    monkeypatch.setenv("BASE_DOMAIN", "example.com")
+    from app.core.config import get_settings
+
+    get_settings.cache_clear()
+    settings = get_settings()
+    app.state.settings = settings
+    async with app.state.db.session_factory() as session:
+        runtime = await load_runtime_settings(session, settings)
+    app.state.runtime_settings = replace(runtime, base_domain="example.com")
+    fake = _two_bots(app)
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        ok = await client.post(
+            "/api/telegram/webhook",
+            headers={
+                "host": "alpha.example.com",
+                "x-forwarded-host": "example.com",
+            },
+            json={"update_id": 9},
+        )
+    assert ok.status_code == 200
+    assert fake.calls == ["alpha"]
+
+
+async def test_webhook_binds_bot_on_start_update(app: FastAPI, monkeypatch) -> None:
+    monkeypatch.setenv("BASE_DOMAIN", "example.com")
+    from app.core.config import get_settings
+
+    get_settings.cache_clear()
+    settings = get_settings()
+    app.state.settings = settings
+    async with app.state.db.session_factory() as session:
+        runtime = await load_runtime_settings(session, settings)
+    app.state.runtime_settings = replace(runtime, base_domain="example.com")
+    fake = _two_bots(app)
+    alpha = fake.registry.get("alpha")
+    assert alpha is not None
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        ok = await client.post(
+            "/api/telegram/webhook",
+            headers={"host": "alpha.example.com"},
+            json={
+                "update_id": 10,
+                "message": {
+                    "message_id": 1,
+                    "date": 1,
+                    "chat": {"id": 1, "type": "private"},
+                    "from": {"id": 1, "is_bot": False, "first_name": "A"},
+                    "text": "/start",
+                    "entities": [{"offset": 0, "length": 6, "type": "bot_command"}],
+                },
+            },
+        )
+    assert ok.status_code == 200
+    assert fake.calls == ["alpha"]
+    update = fake.updates[0]
+    assert getattr(update, "bot", None) is alpha.aiogram_bot
