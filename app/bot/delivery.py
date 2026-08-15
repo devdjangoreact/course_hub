@@ -21,6 +21,22 @@ async def edit_callback(callback: CallbackQuery, text: str, markup: object | Non
     await callback.answer()
 
 
+async def reply_callback(
+    callback: CallbackQuery,
+    text: str,
+    markup: object | None = None,
+    **kwargs: object,
+) -> None:
+    message = callback.message
+    if can_use_message(message):
+        await message.answer(text, reply_markup=markup, **kwargs)  # type: ignore[union-attr]
+        return
+    if callback.bot is not None and callback.from_user is not None:
+        await callback.bot.send_message(
+            callback.from_user.id, text, reply_markup=markup, **kwargs
+        )
+
+
 def can_use_message(message: object | None) -> bool:
     return message is not None and hasattr(message, "answer")
 

@@ -182,22 +182,20 @@ async def create_order(
     if callback.from_user is None:
         await callback.answer("Unable to identify user.")
         return
-    if not course_delivery.can_use_message(callback.message):
-        await callback.answer()
-        return
+    await callback.answer()
 
     language = await _language_for(callback.from_user.id, bot_users, localization)
     course_id = int(str(callback.data).split(":", 1)[1])
 
     if await orders.uses_lava_provider():
+        if not course_delivery.can_use_message(callback.message):
+            return
         user = await bot_users.get_by_telegram_id(callback.from_user.id)
         saved_email = payment_email(user.extra) if user else None
         if saved_email is None:
             await _prompt_payment_email(callback.message, state, language, course_id)
-            await callback.answer()
             return
         await _prompt_saved_email_confirm(callback.message, language, course_id, saved_email)
-        await callback.answer()
         return
 
     try:
@@ -205,10 +203,15 @@ async def create_order(
             orders, callback.from_user, course_id, bot_id=hub_bot_id
         )
     except NotFoundError:
-        await callback.answer(bot_message(language, "course_not_found"))
+        await course_delivery.reply_callback(
+            callback, bot_message(language, "course_not_found")
+        )
         return
     except ValidationError as exc:
-        await callback.answer(str(exc))
+        await course_delivery.reply_callback(callback, str(exc))
+        return
+
+    if not course_delivery.can_use_message(callback.message):
         return
 
     course = await catalog.get_localized_course(course_id, language)
@@ -223,7 +226,6 @@ async def create_order(
         amount=course.price,
         intent=intent,
     )
-    await callback.answer()
 
 
 @router.callback_query(F.data.startswith("order:email:use:"))
