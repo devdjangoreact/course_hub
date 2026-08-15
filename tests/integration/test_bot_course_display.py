@@ -12,7 +12,12 @@ def test_course_detail_keyboard_uses_localized_actions() -> None:
     markup = course_detail_keyboard(1, "uk")
 
     assert markup.inline_keyboard[0][0].text == "Замовити"
+    assert markup.inline_keyboard[0][0].callback_data == "order:1"
     assert markup.inline_keyboard[-1][0].text == "Меню"
+    assert [button.callback_data for row in markup.inline_keyboard for button in row] == [
+        "order:1",
+        "menu:home",
+    ]
 
 
 async def test_payment_notification_only_delivers_access_for_paid_status(

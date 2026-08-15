@@ -16,6 +16,9 @@ from app.domain.repositories.payment_gateway import PaymentGateway
 class AtlosPaymentGateway(PaymentGateway):
     """Creates Atlos one-time payments."""
 
+    def __init__(self, backend_url: str = "") -> None:
+        self._backend_url = backend_url.rstrip("/")
+
     async def create_payment(
         self,
         order: Order,
@@ -40,6 +43,8 @@ class AtlosPaymentGateway(PaymentGateway):
         }
         if buyer_email:
             request_data["UserEmail"] = buyer_email
+        if self._backend_url:
+            request_data["PostbackUrl"] = f"{self._backend_url}/api/payments/atlos/webhook"
 
         try:
             async with httpx.AsyncClient(timeout=15.0) as client:
@@ -54,9 +59,12 @@ class AtlosPaymentGateway(PaymentGateway):
             logger.opt(exception=exc).error("ATLOS invoice creation failed")
             raise ValidationError("Payment provider is temporarily unavailable") from exc
 
-        invoice_id = data.get("Id") if isinstance(data, dict) else None
-        pay_url = data.get("PaymentLink") if isinstance(data, dict) else None
-        if not isinstance(invoice_id, str) or not isinstance(pay_url, str):
+        payload = data if isinstance(data, dict) else {}
+        invoice_id = payload.get("Id")
+        pay_url = payload.get("PaymentLink")
+        if invoice_id is not None:
+            invoice_id = str(invoice_id)
+        if not invoice_id or not isinstance(pay_url, str) or not pay_url.strip():
             raise ValidationError("Payment provider returned an incomplete response")
 
         logger.info(

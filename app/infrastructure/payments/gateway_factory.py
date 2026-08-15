@@ -13,7 +13,7 @@ class RoutingPaymentGateway(PaymentGateway):
     def __init__(self, backend_url: str) -> None:
         self._simulated = SimulatedPaymentGateway(backend_url)
         self._lava = LavaPaymentGateway()
-        self._atlos = AtlosPaymentGateway()
+        self._atlos = AtlosPaymentGateway(backend_url)
 
     async def create_payment(
         self,

@@ -8,10 +8,11 @@ from app.application.errors import NotFoundError, ValidationError
 from app.application.services.catalog_service import CatalogService
 from app.application.services.localization_service import LocalizationService
 from app.application.services.order_service import OrderService
+from app.application.services.runtime_settings import RuntimeSettings
+from app.bot import delivery as course_delivery
 from app.bot.keyboards.catalog import payment_email_confirm_keyboard, payment_url_keyboard
 from app.bot.messages.catalog import message as bot_message
 from app.bot.states import OrderStates
-from app.application.services.runtime_settings import RuntimeSettings
 from app.domain.entities.bot_user import BotUser
 from app.domain.entities.payment_intent import PaymentIntent
 from app.domain.repositories.bot_user_repository import BotUserRepository
@@ -181,7 +182,7 @@ async def create_order(
     if callback.from_user is None:
         await callback.answer("Unable to identify user.")
         return
-    if not isinstance(callback.message, Message):
+    if not course_delivery.can_use_message(callback.message):
         await callback.answer()
         return
 
@@ -235,7 +236,7 @@ async def use_saved_payment_email(
     localization: LocalizationService,
     hub_bot_id: int | None = None,
 ) -> None:
-    if callback.from_user is None or not isinstance(callback.message, Message):
+    if callback.from_user is None or not course_delivery.can_use_message(callback.message):
         await callback.answer()
         return
     language = await _language_for(callback.from_user.id, bot_users, localization)
@@ -260,7 +261,7 @@ async def change_payment_email(
     bot_users: BotUserRepository,
     localization: LocalizationService,
 ) -> None:
-    if callback.from_user is None or not isinstance(callback.message, Message):
+    if callback.from_user is None or not course_delivery.can_use_message(callback.message):
         await callback.answer()
         return
     language = await _language_for(callback.from_user.id, bot_users, localization)

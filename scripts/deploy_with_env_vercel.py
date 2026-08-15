@@ -12,9 +12,10 @@ Optional domain setup (Proxied + SSL Full strict) when CLOUDFLARE_API_TOKEN is s
   CUSTOM_DOMAIN_WWW=true      # optional, also configure www
 
 Each run also adds Vercel + Cloudflare wildcard `*.CUSTOM_DOMAIN` so bot subdomains
-(e.g. safesolo_bot.codehelp.pp.ua) hit Cloudflare → Vercel, and removes a stale
-catch-all A/AAAA (63.185.31.246) that would steal those labels. If Vercel Hobby
-rejects `*.domain`, the four known bot hostnames are added explicitly.
+hit Cloudflare → Vercel, and removes a stale catch-all A/AAAA (63.185.31.246).
+Explicit Vercel hostnames are added for every active bot in the database (hyphenated;
+Vercel rejects `_` in labels). If Vercel Hobby rejects `*.domain`, those DB hosts
+are the fallback.
 
 Usage (from repo root):
   python scripts/deploy_with_env_vercel.py
@@ -25,6 +26,7 @@ Usage (from repo root):
 from __future__ import annotations
 
 import argparse
+import asyncio
 import json
 import shutil
 import subprocess
@@ -50,13 +52,6 @@ TRUTHY = {"true", "1", "yes", "on"}
 DEFAULT_VERCEL_URL = "https://course-hub-six-sigma.vercel.app"
 VERCEL_CNAME = "cname.vercel-dns.com"
 STALE_CATCHALL_IP = "63.185.31.246"
-# Prod bot usernames (2026-08-14). Used only if Vercel rejects wildcard domains.
-BOT_WEBHOOK_HOSTS = (
-    "safesolo_bot",
-    "solopath_bot",
-    "vector_t_y_bot",
-    "prompt_d_bot",
-)
 
 
 def parse_env(raw: str) -> dict[str, str]:
@@ -309,10 +304,7 @@ def delete_stale_catchall_records(token: str, zone_id: str, zone_name: str) -> N
         is_stale_ip = content == STALE_CATCHALL_IP
         if not is_wildcard and not is_stale_ip:
             continue
-        if (
-            rtype == "CNAME"
-            and "vercel-dns.com" in content.lower()
-        ):
+        if rtype == "CNAME" and "vercel-dns" in content.lower():
             continue
         cid = rec.get("id")
         if not cid:
@@ -331,7 +323,11 @@ def delete_stale_catchall_records(token: str, zone_id: str, zone_name: str) -> N
 
 
 def add_vercel_wildcard_or_hosts(
-    token: str, org_id: str, project_id: str, domain: str
+    token: str,
+    org_id: str,
+    project_id: str,
+    domain: str,
+    usernames: list[str],
 ) -> None:
     wildcard = f"*.{domain}"
     url = (
@@ -364,24 +360,114 @@ def add_vercel_wildcard_or_hosts(
     if vercel_rejects_wildcard(status, payload):
         print(
             f"WARNING: Vercel Hobby (or current plan) forbids {wildcard}: "
-            f"{_vercel_error_text(payload)}. Falling back to explicit bot hostnames."
+            f"{_vercel_error_text(payload)}. Falling back to explicit bot hostnames from DB."
         )
-        add_explicit_bot_vercel_hosts(token, org_id, project_id, domain)
+        add_explicit_bot_vercel_hosts(token, org_id, project_id, domain, usernames)
         return
     raise RuntimeError(f"Vercel add domain failed: HTTP {status} {payload}")
 
 
+def vercel_label_for_username(username: str) -> str:
+    return username.lstrip("@").strip().lower().replace("_", "-")
+
+
+def _import_asyncpg() -> Any:
+    try:
+        import asyncpg
+
+        return asyncpg
+    except ImportError:
+        extra = [REPO_ROOT / ".venv" / "Lib" / "site-packages"]
+        lib = REPO_ROOT / ".venv" / "lib"
+        if lib.is_dir():
+            extra.extend(lib.glob("python*/site-packages"))
+        for path in extra:
+            if path.is_dir() and str(path) not in sys.path:
+                sys.path.insert(0, str(path))
+        import asyncpg
+
+        return asyncpg
+
+
+def list_active_bots(database_url: str) -> list[tuple[str, str, str]]:
+    """Return (username, token, webhook_secret) for active bots. Never prints secrets."""
+    try:
+        asyncpg = _import_asyncpg()
+    except ImportError:
+        print("WARNING: asyncpg missing; skip DB bot host list.")
+        return []
+
+    dsn = database_url.strip().replace("postgresql+asyncpg://", "postgresql://")
+    if dsn.startswith("postgres://"):
+        dsn = "postgresql://" + dsn[len("postgres://") :]
+
+    async def fetch() -> list[tuple[str, str, str]]:
+        conn = await asyncpg.connect(dsn)
+        try:
+            rows = await conn.fetch(
+                "select username, token, coalesce(webhook_secret, '') as webhook_secret "
+                "from bots where is_active is true"
+            )
+        finally:
+            await conn.close()
+        out: list[tuple[str, str, str]] = []
+        for row in rows:
+            username = str(row["username"] or "").strip()
+            if not username:
+                continue
+            out.append((username, str(row["token"] or ""), str(row["webhook_secret"] or "")))
+        return out
+
+    try:
+        return asyncio.run(fetch())
+    except Exception as exc:  # noqa: BLE001 - deploy continues with wildcard only
+        print(f"WARNING: could not list bots from DB ({type(exc).__name__}); skip explicit hosts.")
+        return []
+
+
 def add_explicit_bot_vercel_hosts(
-    token: str, org_id: str, project_id: str, domain: str
+    token: str,
+    org_id: str,
+    project_id: str,
+    domain: str,
+    usernames: list[str],
 ) -> None:
     seen: set[str] = set()
-    for username in BOT_WEBHOOK_HOSTS:
-        # Vercel rejects `_` in domain labels (invalid_domain).
-        host = f"{username.replace('_', '-')}.{domain}"
+    for username in usernames:
+        host = f"{vercel_label_for_username(username)}.{domain}"
         if host in seen:
             continue
         seen.add(host)
         add_vercel_domain(token, org_id, project_id, host)
+
+
+def set_telegram_webhooks_for_bots(
+    bots: list[tuple[str, str, str]],
+    *,
+    base_domain: str,
+    webhook_path: str,
+) -> None:
+    path = webhook_path if webhook_path.startswith("/") else f"/{webhook_path}"
+    for username, token, secret in bots:
+        token = token.strip()
+        if not token:
+            print(f"WARNING: skip setWebhook @{username}: empty token")
+            continue
+        hook_url = f"https://{vercel_label_for_username(username)}.{base_domain}{path}"
+        body: dict[str, Any] = {"url": hook_url}
+        if secret.strip():
+            body["secret_token"] = secret.strip()
+        status, payload = http_json(
+            "POST",
+            f"https://api.telegram.org/bot{token}/setWebhook",
+            headers={"Content-Type": "application/json"},
+            body=body,
+        )
+        ok = isinstance(payload, dict) and payload.get("ok") is True
+        if status != 200 or not ok:
+            print(f"WARNING: setWebhook @{username} failed: HTTP {status}")
+            continue
+        print(f"OK  setWebhook @{username} -> {hook_url}")
 
 
 def vercel_recommended_cname(token: str, org_id: str, domain: str) -> str:
@@ -545,8 +631,11 @@ def setup_custom_domain(keys: dict[str, str], *, include_www: bool) -> str:
     project_id = keys["VERCEL_PROJECT_ID"].strip()
 
     add_vercel_domain(vercel_token, org_id, project_id, domain)
-    add_vercel_wildcard_or_hosts(vercel_token, org_id, project_id, domain)
-    add_explicit_bot_vercel_hosts(vercel_token, org_id, project_id, domain)
+    bots = list_active_bots(keys["DATABASE_URL"])
+    usernames = [username for username, _, _ in bots]
+    print(f"OK  {len(usernames)} active bot(s) from DB")
+    add_vercel_wildcard_or_hosts(vercel_token, org_id, project_id, domain, usernames)
+    add_explicit_bot_vercel_hosts(vercel_token, org_id, project_id, domain, usernames)
     cname_target = vercel_recommended_cname(vercel_token, org_id, domain)
 
     delete_stale_catchall_records(token_cf, zone_id, zone_name)
@@ -579,6 +668,14 @@ def setup_custom_domain(keys: dict[str, str], *, include_www: bool) -> str:
 
     set_cloudflare_ssl_strict(token_cf, zone_id)
     set_cloudflare_https_always(token_cf, zone_id)
+
+    webhook_base = (keys.get("BASE_DOMAIN", "").strip() or domain).lower()
+    webhook_base = hostname_from_url(webhook_base) or webhook_base
+    set_telegram_webhooks_for_bots(
+        bots,
+        base_domain=webhook_base,
+        webhook_path=keys.get("TELEGRAM_WEBHOOK_PATH", "").strip() or "/api/telegram/webhook",
+    )
 
     expected_backend = f"https://{domain}"
     current_backend = keys.get("BACKEND_URL", "").rstrip("/")

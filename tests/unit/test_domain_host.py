@@ -1,5 +1,6 @@
 from app.core.domain_host import (
     bot_username_from_host,
+    host_from_headers,
     normalize_bot_username,
     resolve_base_domain,
     webhook_url_for_bot,
@@ -25,6 +26,15 @@ def test_bot_username_from_host_strips_port() -> None:
 def test_resolve_base_domain_prefers_explicit() -> None:
     assert resolve_base_domain(base_domain="bots.example.com", backend_url="https://api.example.com") == "bots.example.com"
     assert resolve_base_domain(base_domain="", backend_url="https://api.example.com:443/") == "api.example.com"
+
+
+def test_host_from_headers_prefers_forwarded_host() -> None:
+    assert host_from_headers(host="vercel.app", forwarded_host="shop.example.com") == "shop.example.com"
+    assert host_from_headers(host="shop.example.com:443", forwarded_host="") == "shop.example.com:443"
+    assert (
+        host_from_headers(host="ignored", forwarded_host="alpha.example.com, other.com")
+        == "alpha.example.com"
+    )
 
 
 def test_webhook_url_for_bot() -> None:

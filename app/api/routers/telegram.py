@@ -2,9 +2,9 @@ from aiogram.types import Update
 from fastapi import APIRouter, Header, HTTPException, Request
 
 from app.application.services.runtime_settings import load_runtime_settings
-from app.bot.registry import RegisteredBot
+from app.bot.registry import BotRegistry, RegisteredBot
 from app.core.config import TelegramMode
-from app.core.domain_host import bot_username_from_host
+from app.core.domain_host import bot_username_from_host, host_from_headers
 
 
 def build_telegram_router(webhook_path: str) -> APIRouter:
@@ -29,16 +29,18 @@ def build_telegram_router(webhook_path: str) -> APIRouter:
             async with request.app.state.db.session_factory() as session:
                 runtime = await load_runtime_settings(session, settings)
         base_domain = runtime.base_domain
-        host = request.headers.get("host") or ""
-        username = bot_username_from_host(host, base_domain)
-        if username is None:
-            raise HTTPException(status_code=404, detail="Unknown Telegram bot host")
-
-        registered: RegisteredBot | None = bot_app.registry.get(username)
+        host = host_from_headers(
+            host=request.headers.get("host") or "",
+            forwarded_host=request.headers.get("x-forwarded-host") or "",
+        )
+        registered = _registered_bot(bot_app.registry, host, base_domain)
         if registered is None:
             raise HTTPException(status_code=404, detail="Telegram bot not found")
 
-        if registered.webhook_secret and x_telegram_bot_api_secret_token != registered.webhook_secret:
+        if (
+            registered.webhook_secret
+            and x_telegram_bot_api_secret_token != registered.webhook_secret
+        ):
             raise HTTPException(status_code=401, detail="Invalid Telegram webhook secret")
 
         payload = await request.json()
@@ -47,3 +49,15 @@ def build_telegram_router(webhook_path: str) -> APIRouter:
         return {"ok": True}
 
     return telegram_router
+
+
+def _registered_bot(registry: BotRegistry, host: str, base_domain: str) -> RegisteredBot | None:
+    username = bot_username_from_host(host, base_domain)
+    if username is not None:
+        found = registry.get(username)
+        if found is not None:
+            return found
+    active = registry.all_active()
+    if len(active) == 1:
+        return active[0]
+    return None

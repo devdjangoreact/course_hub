@@ -6,6 +6,7 @@ from app.application.errors import NotFoundError
 from app.application.services.catalog_service import CatalogService
 from app.application.services.localization_service import LocalizationService
 from app.application.services.order_service import OrderService
+from app.bot import delivery as course_delivery
 from app.bot.handlers.categories import send_course_access
 from app.bot.keyboards.language import language_keyboard
 from app.bot.keyboards.main_menu import main_menu_keyboard
@@ -95,12 +96,11 @@ async def handle_language_menu(
     callback: CallbackQuery,
     localization: LocalizationService,
 ) -> None:
-    if isinstance(callback.message, Message):
-        await callback.message.edit_text(
-            bot_message(DEFAULT_LANGUAGE, "choose_language"),
-            reply_markup=language_keyboard(await localization.list_active_languages()),
-        )
-    await callback.answer()
+    await course_delivery.edit_callback(
+        callback,
+        bot_message(DEFAULT_LANGUAGE, "choose_language"),
+        language_keyboard(await localization.list_active_languages()),
+    )
 
 
 @router.callback_query(F.data.startswith("language:"))
@@ -123,12 +123,11 @@ async def handle_language_selected(
             preferred_language=language,
         )
     )
-    if isinstance(callback.message, Message):
-        await callback.message.edit_text(
-            bot_message(language, "language_saved") + "\n\n" + bot_message(language, "welcome"),
-            reply_markup=main_menu_keyboard(language),
-        )
-    await callback.answer()
+    await course_delivery.edit_callback(
+        callback,
+        bot_message(language, "language_saved") + "\n\n" + bot_message(language, "welcome"),
+        main_menu_keyboard(language),
+    )
 
 
 @router.message(Command("help"))
@@ -152,9 +151,8 @@ async def handle_home(
     localization: LocalizationService,
 ) -> None:
     language = await _get_user_language(callback.from_user.id, bot_users, localization)
-    if isinstance(callback.message, Message):
-        await callback.message.edit_text(
-            bot_message(language, "welcome"),
-            reply_markup=main_menu_keyboard(language),
-        )
-    await callback.answer()
+    await course_delivery.edit_callback(
+        callback,
+        bot_message(language, "welcome"),
+        main_menu_keyboard(language),
+    )

@@ -13,6 +13,11 @@ def hostname_from_url(url: str) -> str:
     return host
 
 
+def host_from_headers(*, host: str, forwarded_host: str = "") -> str:
+    first = (forwarded_host or "").split(",")[0].strip()
+    return first or (host or "").strip()
+
+
 def _host_without_port(host: str) -> str:
     host = host.strip()
     if host.startswith("["):

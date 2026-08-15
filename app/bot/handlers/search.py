@@ -5,6 +5,7 @@ from aiogram.types import CallbackQuery, Message
 from app.application.errors import RateLimitedError, ValidationError
 from app.application.services.localization_service import LocalizationService
 from app.application.services.search_service import SearchService
+from app.bot import delivery as course_delivery
 from app.bot.keyboards.catalog import suggestions_keyboard
 from app.bot.messages.catalog import DEFAULT_LANGUAGE
 from app.bot.messages.catalog import message as bot_message
@@ -23,9 +24,7 @@ async def prompt_search(
 ) -> None:
     language = await _language_for(callback.from_user.id, bot_users, localization)
     await state.set_state(SearchStates.awaiting_query)
-    if isinstance(callback.message, Message):
-        await callback.message.edit_text(bot_message(language, "search_prompt"))
-    await callback.answer()
+    await course_delivery.edit_callback(callback, bot_message(language, "search_prompt"))
 
 
 @router.message(SearchStates.awaiting_query)
