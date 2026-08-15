@@ -170,7 +170,6 @@ async def ensure_initial_data(database: Database, settings: Settings) -> None:
                     secret_key=settings.payment_secret_key or None,
                     currency=settings.payment_currency,
                     extra={
-                        "lava_env": settings.lava_env,
                         "checkout_mode": settings.payment_link_mode,
                     },
                 )

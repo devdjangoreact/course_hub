@@ -934,26 +934,6 @@ MarkupSafe = ">=2.0"
 i18n = ["Babel (>=2.7)"]
 
 [[package]]
-name = "lava-top-sdk"
-version = "1.1.1"
-description = "Python client for Lava.top API"
-optional = false
-python-versions = ">=3.8"
-files = [
-    {file = "lava_top_sdk-1.1.1-py3-none-any.whl", hash = "sha256:687a44d2908134f636383db1c9e656179cdc96c8df4b0d890c1f5a82e4e49c72"},
-    {file = "lava_top_sdk-1.1.1.tar.gz", hash = "sha256:e0d286206df0882fc137df335999b5ed51d524294ec555e66007a3b0371f180e"},
-]
-
-[package.dependencies]
-pydantic = ">=2.5.0"
-python-dotenv = ">=1.0.0"
-requests = ">=2.31.0"
-
-[package.extras]
-dev = ["black (>=23.0.0)", "pylint (>=2.17.0)", "pytest (>=7.4.0)", "pytest-asyncio (>=0.21.0)", "pytest-cov (>=4.1.0)"]
-examples = ["fastapi (>=0.104.0)", "uvicorn (>=0.24.0)"]
-
-[[package]]
 name = "librt"
 version = "0.13.0"
 description = "Mypyc runtime library"
@@ -2286,4 +2266,4 @@ propcache = ">=0.2.1"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12"
-content-hash = "e0f5adbe173dc7553ed803eebcca8a0bf4eee57a6f6dbafe8450e294e138ccec"
+content-hash = "9b6362a2aa06ac9ada8661ae107da26aff8c2413ca30e748244c2326ebda9292"

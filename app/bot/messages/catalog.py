@@ -23,13 +23,6 @@ _MESSAGES: dict[str, dict[str, str]] = {
         "order_created": "Заказ создан",
         "course_not_found": "Курс не найден.",
         "payment_status": "Статус оплаты заказа",
-        "payment_email_prompt": "Введите email для оплаты через lava.top:",
-        "payment_email_invalid": "Некорректный email. Попробуйте ещё раз.",
-        "payment_email_confirm": (
-            "Сохранённый email: <code>{email}</code>\n\nИспользовать его для оплаты?"
-        ),
-        "payment_email_use": "Да, использовать",
-        "payment_email_change": "Другой email",
         "order_payment_summary": (
             "<b>Заказ #{order_id}</b>\n\n"
             "Товар: {course_name}\n"
@@ -38,7 +31,6 @@ _MESSAGES: dict[str, dict[str, str]] = {
             "Сумма: {amount} {currency}\n\n"
             "Нажмите «Оплатить» ниже."
         ),
-        "payment_provider_lava": "lava.top",
         "payment_provider_atlos": "atlos.io",
         "payment_provider_simulated": "Тестовая оплата",
         "pay_button": "Оплатить",
@@ -68,11 +60,6 @@ _MESSAGES: dict[str, dict[str, str]] = {
         "order_created": "Замовлення створено",
         "course_not_found": "Курс не знайдено.",
         "payment_status": "Статус оплати замовлення",
-        "payment_email_prompt": "Введіть email для оплати через lava.top:",
-        "payment_email_invalid": "Некоректний email. Спробуйте ще раз.",
-        "payment_email_confirm": "Збережений email: <code>{email}</code>\n\nВикористати його для оплати?",
-        "payment_email_use": "Так, використати",
-        "payment_email_change": "Інший email",
         "order_payment_summary": (
             "<b>Замовлення #{order_id}</b>\n\n"
             "Товар: {course_name}\n"
@@ -81,7 +68,6 @@ _MESSAGES: dict[str, dict[str, str]] = {
             "Сума: {amount} {currency}\n\n"
             "Натисніть «Оплатити» нижче."
         ),
-        "payment_provider_lava": "lava.top",
         "payment_provider_atlos": "atlos.io",
         "payment_provider_simulated": "Тестова оплата",
         "pay_button": "Оплатити",
@@ -111,11 +97,6 @@ _MESSAGES: dict[str, dict[str, str]] = {
         "order_created": "Order created",
         "course_not_found": "Course not found.",
         "payment_status": "Order payment status",
-        "payment_email_prompt": "Enter your email for lava.top checkout:",
-        "payment_email_invalid": "Invalid email. Please try again.",
-        "payment_email_confirm": "Saved email: <code>{email}</code>\n\nUse it for checkout?",
-        "payment_email_use": "Yes, use this email",
-        "payment_email_change": "Use another email",
         "order_payment_summary": (
             "<b>Order #{order_id}</b>\n\n"
             "Product: {course_name}\n"
@@ -124,7 +105,6 @@ _MESSAGES: dict[str, dict[str, str]] = {
             "Amount: {amount} {currency}\n\n"
             "Tap «Pay» below."
         ),
-        "payment_provider_lava": "lava.top",
         "payment_provider_atlos": "atlos.io",
         "payment_provider_simulated": "Simulated payment",
         "pay_button": "Pay",

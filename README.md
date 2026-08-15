@@ -82,16 +82,16 @@ Optional `TELEGRAM_WEBHOOK_SECRET` must match Telegram header `X-Telegram-Bot-Ap
 Local webhook testing: run the API, expose it with Cloudflare Tunnel, set `BACKEND_URL` to the tunnel
 HTTPS URL, restart so auto-set rebinds the bot.
 
-## Payments (atlos.io & lava.top)
+## Payments (atlos.io)
 
 Configure payments in the admin panel under **Settings → Payment Settings**
 (`http://localhost:8000/admin`). Changes apply immediately without restart:
 
-- **Provider**: `simulated` (local dev), `lava`, or `atlos`
-- **API key**: atlos.io ApiSecret OR lava.top Public API key
-- **Webhook secret**: atlos.io Webhook Secret (`Signature`) OR lava.top Webhook API key (`X-Api-Key`)
+- **Provider**: `simulated` (local dev) or `atlos`
+- **API key**: atlos.io Merchant ID
+- **Webhook secret**: atlos.io Webhook Secret (`Signature`)
 - **Currency**: USD, EUR, RUB, etc.
-- **Extra**: `{"lava_env": "production", "checkout_mode": "direct"}`
+- **Extra**: `{"checkout_mode": "direct"}`
 
 Payment link mode (`checkout_mode` in **Extra** or `PAYMENT_LINK_MODE` in `.env` on first seed):
 
@@ -101,11 +101,7 @@ Payment link mode (`checkout_mode` in **Extra** or `PAYMENT_LINK_MODE` in `.env`
 On first run, values are seeded from `.env` (`PAYMENT_PROVIDER`, `PAYMENT_API_KEY`,
 `PAYMENT_SECRET_KEY`, `PAYMENT_CURRENCY`, `PAYMENT_LINK_MODE`). 
 
-Map each course to a specific offer if required (e.g. for lava.top, add `{"lava_offer_id": "uuid"}` in course `extra`).
-
-**Webhook URLs:**
-- Atlos.io: `{BACKEND_URL}/api/payments/atlos/webhook`
-- Lava.top: `{BACKEND_URL}/api/payments/lava/webhook` (event type: **Payment result**)
+**Webhook URL:** `{BACKEND_URL}/api/payments/atlos/webhook`
 
 Development keeps `PAYMENT_PROVIDER=simulated` for local order/payment testing without external calls.
 
@@ -118,7 +114,7 @@ docker compose exec app pytest
 ```
 
 The suite covers health, catalog endpoints, full-text search, order creation, simulated payment,
-lava.top webhook handling, payment webhook signature validation/idempotency, admin authentication,
+payment webhook signature validation/idempotency, admin authentication,
 multilingual catalog/search, and the rate limiter.
 
 ## Deploy to Vercel (CI/CD)

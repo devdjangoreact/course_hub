@@ -47,7 +47,6 @@ class Settings(BaseSettings):
     payment_api_key: str = ""
     payment_secret_key: str = ""
     payment_currency: str = "USD"
-    lava_env: str = "production"
     payment_link_mode: str = "direct"
 
     log_level: str = "INFO"

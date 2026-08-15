@@ -231,7 +231,7 @@ class PaymentSettingsAdmin(ModelView, model=PaymentSettingsModel):
     column_labels = {
         PaymentSettingsModel.api_key: "API key / Merchant ID",
         PaymentSettingsModel.secret_key: "Webhook secret / API secret",
-        PaymentSettingsModel.extra: "Extra (lava_env, checkout_mode)",
+        PaymentSettingsModel.extra: "Extra (checkout_mode)",
     }
     form_columns = [
         PaymentSettingsModel.provider,
@@ -249,26 +249,23 @@ class PaymentSettingsAdmin(ModelView, model=PaymentSettingsModel):
         "provider": {
             "choices": [
                 ("simulated", "Simulated (local dev)"),
-                ("lava", "lava.top"),
                 ("atlos", "ATLOS"),
             ],
             "description": "Active payment provider for new orders.",
         },
         "api_key": {
-            "description": "lava.top Public API key or ATLOS Merchant ID.",
+            "description": "ATLOS Merchant ID.",
         },
         "secret_key": {
-            "description": (
-                "lava.top Webhook API key, ATLOS API secret, or simulated HMAC secret."
-            ),
+            "description": "ATLOS API secret, or simulated HMAC secret.",
         },
         "currency": {
             "choices": [("USD", "USD"), ("EUR", "EUR"), ("RUB", "RUB")],
-            "description": "Checkout currency (lava.top rules apply per method).",
+            "description": "Checkout currency.",
         },
         "extra": {
             "description": (
-                'JSON options, e.g. {"lava_env": "production", "checkout_mode": "direct"} '
+                'JSON options, e.g. {"checkout_mode": "direct"} '
                 'or {"checkout_mode": "checkout"}. '
                 "direct = payment URL in bot; checkout = short link to order summary page."
             ),

@@ -615,7 +615,7 @@ Use existing `/payments/simulate` in development or test webhook to mark order p
   - `smtp_use_tls: bool = True`
 - `SmtpMailer.send(to: str, subject: str, body: str) -> None` — no-op log if host empty
 - `DeliveryMailer.send_paid_course(to: str, course_name: str, download_url: str, invite: str | None) -> None`
-- Buyer email: reuse `payment_email(user.extra)` from lava helpers; if missing, skip email and log
+- Buyer email: use `user.extra["payment_email"]` if present; if missing, skip email and log
 
 - [ ] **Step 1: Config fields**
 

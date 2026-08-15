@@ -33,7 +33,6 @@ from app.infrastructure.db.repositories.telegram_channel_repository import (
     SqlTelegramChannelRepository,
 )
 from app.infrastructure.email.smtp_mailer import SmtpMailer
-from app.infrastructure.payments.lava_helpers import payment_email
 
 
 def build_dispatcher(runtime: BotRuntime) -> Dispatcher:
@@ -242,7 +241,8 @@ class BotApp:
             download_text += f"\n{bot_message(language, 'invite_line')}: {invite}"
         await bot.send_message(telegram_id, download_text)
 
-        email = payment_email(user.extra) if user is not None else None
+        raw_email = user.extra.get("payment_email") if user is not None else None
+        email = raw_email.strip() if isinstance(raw_email, str) and raw_email.strip() else None
         if email is None:
             logger.info("No buyer email for telegram_id={}; skip paid email", telegram_id)
             return
