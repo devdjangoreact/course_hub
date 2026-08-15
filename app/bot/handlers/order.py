@@ -1,7 +1,7 @@
 from decimal import Decimal
 
 from aiogram import F, Router
-from aiogram.types import CallbackQuery, LinkPreviewOptions, Message, User
+from aiogram.types import CallbackQuery, LinkPreviewOptions, User
 
 from app.application.errors import NotFoundError, ValidationError
 from app.application.services.catalog_service import CatalogService
@@ -76,7 +76,7 @@ async def _pay_button_url(
 
 
 async def _send_payment_summary(
-    target: Message,
+    callback: CallbackQuery,
     *,
     language: str,
     runtime: RuntimeSettings,
@@ -100,7 +100,9 @@ async def _send_payment_summary(
     )
     pay_url = await _pay_button_url(runtime, orders, order_id, intent)
     markup = payment_url_keyboard(pay_url, language) if pay_url else None
-    await target.answer(text, reply_markup=markup, link_preview_options=_NO_LINK_PREVIEW)
+    await course_delivery.reply_callback(
+        callback, text, markup, link_preview_options=_NO_LINK_PREVIEW
+    )
 
 
 @router.callback_query(F.data.regexp(r"^order:\d+$"))
@@ -134,12 +136,9 @@ async def create_order(
         await course_delivery.reply_callback(callback, str(exc))
         return
 
-    if not course_delivery.can_use_message(callback.message):
-        return
-
     course = await catalog.get_localized_course(course_id, language)
     await _send_payment_summary(
-        callback.message,
+        callback,
         language=language,
         runtime=runtime,
         catalog=catalog,

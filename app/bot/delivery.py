@@ -14,11 +14,29 @@ async def edit_text(message: object, text: str, markup: object | None = None) ->
 
 async def edit_callback(callback: CallbackQuery, text: str, markup: object | None = None) -> None:
     message = callback.message
-    if message is not None and hasattr(message, "edit_text"):
-        await edit_text(message, text, markup)
-    elif callback.bot is not None and callback.from_user is not None:
-        await callback.bot.send_message(callback.from_user.id, text, reply_markup=markup)
-    await callback.answer()
+    try:
+        if message is not None and hasattr(message, "edit_text"):
+            try:
+                await edit_text(message, text, markup)
+            except TelegramBadRequest:
+                await _send_callback_text(callback, text, markup)
+        else:
+            await _send_callback_text(callback, text, markup)
+    finally:
+        await callback.answer()
+
+
+async def _send_callback_text(
+    callback: CallbackQuery, text: str, markup: object | None = None, **kwargs: object
+) -> None:
+    message = callback.message
+    if callback.bot is not None and callback.from_user is not None:
+        await callback.bot.send_message(
+            callback.from_user.id, text, reply_markup=markup, **kwargs
+        )
+        return
+    if message is not None and hasattr(message, "answer"):
+        await message.answer(text, reply_markup=markup, **kwargs)  # type: ignore[union-attr]
 
 
 async def reply_callback(
@@ -27,14 +45,10 @@ async def reply_callback(
     markup: object | None = None,
     **kwargs: object,
 ) -> None:
-    message = callback.message
-    if can_use_message(message):
-        await message.answer(text, reply_markup=markup, **kwargs)  # type: ignore[union-attr]
+    if can_use_message(callback.message):
+        await callback.message.answer(text, reply_markup=markup, **kwargs)  # type: ignore[union-attr]
         return
-    if callback.bot is not None and callback.from_user is not None:
-        await callback.bot.send_message(
-            callback.from_user.id, text, reply_markup=markup, **kwargs
-        )
+    await _send_callback_text(callback, text, markup, **kwargs)
 
 
 def can_use_message(message: object | None) -> bool:

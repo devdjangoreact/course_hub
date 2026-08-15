@@ -57,7 +57,7 @@ class FakeMessage:
 
 
 class FakeCallback:
-    def __init__(self, data: str, message: FakeMessage) -> None:
+    def __init__(self, data: str, message: object) -> None:
         self.data = data
         self.from_user = FakeTelegramUser()
         self.message = message
@@ -67,6 +67,21 @@ class FakeCallback:
     async def answer(self, text: str | None = None, show_alert: bool = False) -> None:
         del show_alert
         self.alerts.append(text)
+
+
+class AnswerOnlyMessage:
+    """aiogram InaccessibleMessage: has answer(), no edit_text (callback.bot may be unset)."""
+
+    def __init__(self) -> None:
+        self.from_user = FakeTelegramUser()
+        self.bot = None
+        self.answers: list[str] = []
+        self.markups: list[object | None] = []
+
+    async def answer(self, text: str, reply_markup: object | None = None, **kwargs: object) -> None:
+        del kwargs
+        self.answers.append(text)
+        self.markups.append(reply_markup)
 
 
 class FakeBotUserRepository(BotUserRepository):
@@ -231,6 +246,16 @@ async def test_start_help_language_and_home_navigation(nav: tuple) -> None:
 
 
 @pytest.mark.asyncio
+async def test_categories_still_replies_when_callback_message_cannot_be_edited(nav: tuple) -> None:
+    users, localization, catalog, _message = nav
+    await users.upsert(BotUser(id=None, telegram_id=42, username="nav", preferred_language="uk"))
+    target = AnswerOnlyMessage()
+    await show_categories(FakeCallback("menu:categories", target), catalog, users, localization)
+    assert target.answers
+    assert _callbacks(target.markups[-1]) == ["cat:1", "menu:home"]
+
+
+@pytest.mark.asyncio
 async def test_categories_courses_course_and_back_to_menu(nav: tuple) -> None:
     users, localization, catalog, message = nav
     await users.upsert(BotUser(id=None, telegram_id=42, username="nav", preferred_language="uk"))
@@ -342,6 +367,18 @@ async def test_returning_user_clicks_every_menu_path_to_pay(nav: tuple) -> None:
     pay = message.markups[-1].inline_keyboard[0][0]
     assert pay.url.endswith("sig=deadbeef")
     assert pay.text == "Оплатити"
+
+    inaccessible = AnswerOnlyMessage()
+    await create_order(
+        FakeCallback("order:7", inaccessible),
+        orders,
+        catalog,
+        FakeRuntime(),
+        users,
+        localization,
+    )
+    assert "Тестова оплата" in inaccessible.answers[-1]
+    assert inaccessible.markups[-1].inline_keyboard[0][0].url.endswith("sig=deadbeef")
 
     await prompt_search(FakeCallback("menu:search", message), _fsm(), users, localization)
     await handle_language_menu(FakeCallback("menu:language", message), localization)
