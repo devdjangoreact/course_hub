@@ -17,10 +17,14 @@ Explicit Vercel hostnames are added for every active bot in the database (hyphen
 Vercel rejects `_` in labels). If Vercel Hobby rejects `*.domain`, those DB hosts
 are the fallback.
 
+Every deploy path registers the Telegram webhook when it drifted and then verifies it via
+getWebhookInfo; a webhook that is missing or points elsewhere fails the deploy.
+
 Usage (from repo root):
   python scripts/deploy_with_env_vercel.py
   python scripts/deploy_with_env_vercel.py --skip-domain
   python scripts/deploy_with_env_vercel.py --no-redeploy
+  python scripts/deploy_with_env_vercel.py --webhooks-only
 """
 
 from __future__ import annotations
@@ -49,6 +53,9 @@ REQUIRED_KEYS = (
 )
 FALSEY = {"false", "0", "no", "off"}
 TRUTHY = {"true", "1", "yes", "on"}
+# ponytail: mirrors Dispatcher.resolve_used_update_types(); widen if handlers gain a type.
+REQUIRED_UPDATES = ["message", "callback_query"]
+DEFAULT_WEBHOOK_PATH = "/api/telegram/webhook"
 DEFAULT_VERCEL_URL = "https://course-hub-six-sigma.vercel.app"
 VERCEL_CNAME = "cname.vercel-dns.com"
 STALE_CATCHALL_IP = "63.185.31.246"
@@ -145,6 +152,19 @@ def hostname_from_url(value: str) -> str:
     if "://" not in text:
         text = "https://" + text
     return (urllib.parse.urlparse(text).hostname or "").lower()
+
+
+def resolve_webhook_base_domain(keys: dict[str, str]) -> str:
+    """Host that bot subdomains hang off: BASE_DOMAIN, else CUSTOM_DOMAIN, else BACKEND_URL."""
+    for candidate in (
+        keys.get("BASE_DOMAIN", ""),
+        keys.get("CUSTOM_DOMAIN", ""),
+        keys.get("BACKEND_URL", ""),
+    ):
+        host = hostname_from_url(candidate)
+        if host:
+            return host
+    return ""
 
 
 def resolve_custom_domain(keys: dict[str, str]) -> str:
@@ -402,7 +422,7 @@ def list_active_bots(database_url: str) -> list[tuple[str, str, str]]:
         dsn = "postgresql://" + dsn[len("postgres://") :]
 
     async def fetch() -> list[tuple[str, str, str]]:
-        conn = await asyncpg.connect(dsn)
+        conn = await asyncpg.connect(dsn, timeout=8)
         try:
             rows = await conn.fetch(
                 "select username, token, coalesce(webhook_secret, '') as webhook_secret "
@@ -441,33 +461,133 @@ def add_explicit_bot_vercel_hosts(
         add_vercel_domain(token, org_id, project_id, host)
 
 
-def set_telegram_webhooks_for_bots(
+def telegram_api(token: str, method: str, body: dict[str, Any] | None = None) -> tuple[int, Any]:
+    """Call Bot API. Never prints the token; callers must not log the URL."""
+    return http_json(
+        "POST" if body is not None else "GET",
+        f"https://api.telegram.org/bot{token}/{method}",
+        headers={},
+        body=body,
+        timeout=20,
+    )
+
+
+def telegram_ok(status: int, payload: Any) -> bool:
+    return status == 200 and isinstance(payload, dict) and payload.get("ok") is True
+
+
+def telegram_result(status: int, payload: Any) -> dict[str, Any]:
+    if not telegram_ok(status, payload):
+        return {}
+    result = payload.get("result")
+    return result if isinstance(result, dict) else {}
+
+
+def telegram_username(token: str) -> str:
+    return str(telegram_result(*telegram_api(token, "getMe")).get("username") or "")
+
+
+def allows_required(allowed: Any) -> bool:
+    """Telegram omits allowed_updates when it delivers every type, which is wide enough."""
+    if not isinstance(allowed, list):
+        return True
+    return set(REQUIRED_UPDATES) <= set(allowed)
+
+
+def merged_allowed_updates(allowed: Any) -> list[str] | None:
+    """None keeps Telegram's current setting; a list widens a restricted one in place."""
+    if allows_required(allowed):
+        return None
+    return sorted(set(allowed) | set(REQUIRED_UPDATES))
+
+
+def webhook_url_for(username: str, base_domain: str, webhook_path: str) -> str:
+    path = webhook_path if webhook_path.startswith("/") else f"/{webhook_path}"
+    return f"https://{vercel_label_for_username(username)}.{base_domain}{path}"
+
+
+def fallback_bot_from_env(keys: dict[str, str]) -> list[tuple[str, str, str]]:
+    """Single bot from BOT_TOKEN, for deploys that cannot reach the database (CI)."""
+    token = keys.get("BOT_TOKEN", "").strip()
+    if not token:
+        return []
+    username = keys.get("BOT_USERNAME", "").strip() or telegram_username(token)
+    if not username:
+        print("WARNING: BOT_TOKEN set but getMe failed; cannot resolve webhook host.")
+        return []
+    print(f"Using BOT_TOKEN bot @{username} (no bot list from DB).")
+    return [(username, token, keys.get("TELEGRAM_WEBHOOK_SECRET", "").strip())]
+
+
+def ensure_telegram_webhooks(
     bots: list[tuple[str, str, str]],
     *,
     base_domain: str,
     webhook_path: str,
-) -> None:
-    path = webhook_path if webhook_path.startswith("/") else f"/{webhook_path}"
+) -> list[str]:
+    """Register drifted webhooks, then verify via getWebhookInfo. Returns failure reasons."""
+    failures: list[str] = []
     for username, token, secret in bots:
         token = token.strip()
         if not token:
-            print(f"WARNING: skip setWebhook @{username}: empty token")
+            failures.append(f"@{username}: empty token")
             continue
-        hook_url = f"https://{vercel_label_for_username(username)}.{base_domain}{path}"
-        body: dict[str, Any] = {"url": hook_url}
-        if secret.strip():
-            body["secret_token"] = secret.strip()
-        status, payload = http_json(
-            "POST",
-            f"https://api.telegram.org/bot{token}/setWebhook",
-            headers={"Content-Type": "application/json"},
-            body=body,
-        )
-        ok = isinstance(payload, dict) and payload.get("ok") is True
-        if status != 200 or not ok:
-            print(f"WARNING: setWebhook @{username} failed: HTTP {status}")
+        expected = webhook_url_for(username, base_domain, webhook_path)
+        info = telegram_result(*telegram_api(token, "getWebhookInfo"))
+        current = str(info.get("url") or "")
+        widened = merged_allowed_updates(info.get("allowed_updates"))
+        if current == expected and widened is None:
+            print(f"OK  webhook already registered @{username} -> {expected}")
+        else:
+            body: dict[str, Any] = {"url": expected}
+            if widened is not None:
+                body["allowed_updates"] = widened
+            if secret.strip():
+                body["secret_token"] = secret.strip()
+            status, payload = telegram_api(token, "setWebhook", body)
+            if not telegram_ok(status, payload):
+                failures.append(f"@{username}: setWebhook failed HTTP {status}")
+                continue
+            print(f"OK  setWebhook @{username}: {current or '(none)'} -> {expected}")
+            if widened is not None:
+                print(f"    allowed_updates widened to {widened}")
+
+        info = telegram_result(*telegram_api(token, "getWebhookInfo"))
+        final = str(info.get("url") or "")
+        if final != expected:
+            failures.append(f"@{username}: webhook is {final or '(none)'}, expected {expected}")
             continue
-        print(f"OK  setWebhook @{username} -> {hook_url}")
+        if not allows_required(info.get("allowed_updates")):
+            failures.append(
+                f"@{username}: allowed_updates={info.get('allowed_updates')} "
+                f"misses {REQUIRED_UPDATES}"
+            )
+            continue
+        last_error = str(info.get("last_error_message") or "")
+        if last_error:
+            print(f"WARNING @{username}: Telegram last delivery error: {last_error}")
+        print(f"OK  verified @{username} (pending={info.get('pending_update_count')})")
+    return failures
+
+
+def ensure_webhooks_or_fail(
+    keys: dict[str, str],
+    *,
+    base_domain: str,
+    bots: list[tuple[str, str, str]],
+) -> None:
+    """Single entry point used by every deploy path. Raises when a webhook is not live."""
+    targets = bots or fallback_bot_from_env(keys)
+    if not targets:
+        raise RuntimeError("no bots to configure: DB list empty and BOT_TOKEN missing")
+    failures = ensure_telegram_webhooks(
+        targets,
+        base_domain=base_domain,
+        webhook_path=keys.get("TELEGRAM_WEBHOOK_PATH", "").strip() or DEFAULT_WEBHOOK_PATH,
+    )
+    if failures:
+        raise RuntimeError("Telegram webhook verification failed: " + "; ".join(failures))
+    print(f"OK  {len(targets)} Telegram webhook(s) configured and verified.")
 
 
 def vercel_recommended_cname(token: str, org_id: str, domain: str) -> str:
@@ -669,14 +789,6 @@ def setup_custom_domain(keys: dict[str, str], *, include_www: bool) -> str:
     set_cloudflare_ssl_strict(token_cf, zone_id)
     set_cloudflare_https_always(token_cf, zone_id)
 
-    webhook_base = (keys.get("BASE_DOMAIN", "").strip() or domain).lower()
-    webhook_base = hostname_from_url(webhook_base) or webhook_base
-    set_telegram_webhooks_for_bots(
-        bots,
-        base_domain=webhook_base,
-        webhook_path=keys.get("TELEGRAM_WEBHOOK_PATH", "").strip() or "/api/telegram/webhook",
-    )
-
     expected_backend = f"https://{domain}"
     current_backend = keys.get("BACKEND_URL", "").rstrip("/")
     if current_backend != expected_backend:
@@ -850,11 +962,12 @@ def main() -> int:
     parser.add_argument("--no-redeploy", action="store_true")
     parser.add_argument("--skip-verify", action="store_true")
     parser.add_argument("--skip-domain", action="store_true")
+    parser.add_argument(
+        "--webhooks-only",
+        action="store_true",
+        help="Only register and verify Telegram webhooks (no gh, no Vercel, no redeploy).",
+    )
     args = parser.parse_args()
-
-    if shutil.which("gh") is None:
-        print("gh CLI not found. Install GitHub CLI and run: gh auth login", file=sys.stderr)
-        return 1
 
     env_path = Path(args.env_file)
     if not env_path.is_absolute():
@@ -869,6 +982,27 @@ def main() -> int:
         return 1
 
     keys = parse_env(raw)
+
+    if args.webhooks_only:
+        base_domain = resolve_webhook_base_domain(keys)
+        if not base_domain:
+            print(
+                "Set BASE_DOMAIN, CUSTOM_DOMAIN or BACKEND_URL to register webhooks.",
+                file=sys.stderr,
+            )
+            return 1
+        dsn = keys.get("DATABASE_URL", "").strip()
+        ensure_webhooks_or_fail(
+            keys,
+            base_domain=base_domain,
+            bots=list_active_bots(dsn) if dsn else [],
+        )
+        return 0
+
+    if shutil.which("gh") is None:
+        print("gh CLI not found. Install GitHub CLI and run: gh auth login", file=sys.stderr)
+        return 1
+
     for key in REQUIRED_KEYS:
         if not keys.get(key, "").strip():
             print(f"Missing {key}= in {env_path}", file=sys.stderr)
@@ -876,7 +1010,10 @@ def main() -> int:
 
     auto_set = keys.get("TELEGRAM_AUTO_SET_WEBHOOK")
     if auto_set is None:
-        print("ERROR: TELEGRAM_AUTO_SET_WEBHOOK missing. Set to false in .env.prod.", file=sys.stderr)
+        print(
+            "ERROR: TELEGRAM_AUTO_SET_WEBHOOK missing. Set to false in .env.prod.",
+            file=sys.stderr,
+        )
         return 1
     print(f"TELEGRAM_AUTO_SET_WEBHOOK={auto_set}")
     if auto_set.strip().lower() not in FALSEY:
@@ -912,6 +1049,20 @@ def main() -> int:
             return 1
         if custom_https:
             sync_github_production_url(args.repo, custom_https)
+
+    webhook_base = resolve_webhook_base_domain(keys)
+    if not webhook_base:
+        print(
+            "ERROR: set BASE_DOMAIN, CUSTOM_DOMAIN or BACKEND_URL so bots get a webhook host.",
+            file=sys.stderr,
+        )
+        return 1
+    dsn = keys.get("DATABASE_URL", "").strip()
+    ensure_webhooks_or_fail(
+        keys,
+        base_domain=webhook_base,
+        bots=list_active_bots(dsn) if dsn else [],
+    )
 
     print(f"Updating GitHub secret ENV_PROD for {args.repo} (values hidden)...")
     run(

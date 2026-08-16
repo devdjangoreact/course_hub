@@ -1,6 +1,7 @@
 name: CI and Deploy Vercel
 
-# Push to main: test → write .env.prod from secret ENV_PROD → deploy Vercel.
+# Push to main: test → write .env.prod from secret ENV_PROD → deploy Vercel →
+#               register + verify the Telegram webhook (fails the run if it is not live).
 # PR: test only.
 #
 # Single required GitHub Secret:
@@ -197,6 +198,15 @@ jobs:
           URL=$(vercel deploy --prod --yes --token "$VERCEL_TOKEN")
           echo "url=$URL" >> "$GITHUB_OUTPUT"
           echo "Deployed: $URL"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # Runtime auto-set is intentionally off, so nothing else would notice a missing webhook.
+      - name: Register and verify Telegram webhooks
+        run: python scripts/deploy_with_env_vercel.py --webhooks-only
 
       - name: Scrub local env file
         if: always()
