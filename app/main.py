@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
+from loguru import logger
 from starlette.middleware.sessions import SessionMiddleware
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 
@@ -33,9 +34,20 @@ _STATUS_MAP: dict[type[ApplicationError], int] = {
 }
 
 
-async def _application_error_handler(_: Request, exc: Exception) -> JSONResponse:
+async def _application_error_handler(request: Request, exc: Exception) -> JSONResponse:
+    logger.opt(exception=exc).error(
+        "request failed {} {} {}",
+        request.method,
+        request.url.path,
+        type(exc).__name__,
+    )
     status_code = _STATUS_MAP.get(type(exc), 400) if isinstance(exc, ApplicationError) else 400
     return JSONResponse(status_code=status_code, content={"detail": str(exc)})
+
+
+async def _unhandled_error_handler(request: Request, exc: Exception) -> JSONResponse:
+    logger.opt(exception=exc).error("unhandled {} {}", request.method, request.url.path)
+    return JSONResponse(status_code=500, content={"detail": "Internal server error"})
 
 
 @asynccontextmanager
@@ -91,6 +103,7 @@ def create_app() -> FastAPI:
     app.include_router(build_telegram_router(settings.telegram_webhook_path))
 
     app.add_exception_handler(ApplicationError, _application_error_handler)
+    app.add_exception_handler(Exception, _unhandled_error_handler)
 
     setup_admin(app, app.state.db, settings.admin_session_secret)
     app.state.admin_ready = True

@@ -2,7 +2,8 @@ from collections.abc import Awaitable, Callable
 from typing import Any
 
 from aiogram import BaseMiddleware
-from aiogram.types import TelegramObject
+from aiogram.types import CallbackQuery, Message, TelegramObject
+from loguru import logger
 
 from app.application.services.runtime_settings import load_runtime_settings
 from app.bot.context import BotRuntime
@@ -29,6 +30,7 @@ class ServicesMiddleware(BaseMiddleware):
         data: dict[str, Any],
     ) -> Any:
         runtime = self._runtime
+        label = _event_label(event)
         async with runtime.database.session_factory() as session:
             runtime_settings = await load_runtime_settings(session, runtime.env_settings)
             data["catalog"] = build_catalog_service(session)
@@ -44,4 +46,13 @@ class ServicesMiddleware(BaseMiddleware):
                 return result
             except Exception:
                 await session.rollback()
+                logger.exception("telegram handler failed {}", label)
                 raise
+
+
+def _event_label(event: TelegramObject) -> str:
+    if isinstance(event, CallbackQuery):
+        return f"CallbackQuery data={event.data!r}"
+    if isinstance(event, Message):
+        return f"Message text={(event.text or '')[:80]!r}"
+    return type(event).__name__

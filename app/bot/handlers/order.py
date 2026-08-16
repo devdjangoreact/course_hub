@@ -2,6 +2,7 @@ from decimal import Decimal
 
 from aiogram import F, Router
 from aiogram.types import CallbackQuery, LinkPreviewOptions, User
+from loguru import logger
 
 from app.application.errors import NotFoundError, ValidationError
 from app.application.services.catalog_service import CatalogService
@@ -128,11 +129,13 @@ async def create_order(
             orders, callback.from_user, course_id, bot_id=hub_bot_id
         )
     except NotFoundError:
+        logger.error("order create: course not found course_id={}", course_id)
         await course_delivery.reply_callback(
             callback, bot_message(language, "course_not_found")
         )
         return
     except ValidationError as exc:
+        logger.opt(exception=exc).error("order create failed course_id={}", course_id)
         await course_delivery.reply_callback(callback, str(exc))
         return
 

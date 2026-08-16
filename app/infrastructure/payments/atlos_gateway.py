@@ -2,6 +2,7 @@ import base64
 import hashlib
 import hmac
 import uuid
+from urllib.parse import urlparse
 
 import httpx
 from loguru import logger
@@ -43,15 +44,23 @@ class AtlosPaymentGateway(PaymentGateway):
         if buyer_email:
             request_data["UserEmail"] = buyer_email
         if self._backend_url:
-            request_data["PostbackUrl"] = f"{self._backend_url}/api/payments/atlos/webhook"
+            postback = _atlos_postback_url(self._backend_url)
+            if postback:
+                request_data["PostbackUrl"] = postback
 
         try:
-            async with httpx.AsyncClient(timeout=3.0) as client:
+            async with httpx.AsyncClient(timeout=15.0) as client:
                 response = await client.post(
                     "https://api.atlos.io/gateway/rest/Invoice/Create",
                     headers={"ApiSecret": settings.secret_key},
                     json=request_data,
                 )
+                if response.status_code >= 400:
+                    logger.error(
+                        "ATLOS invoice HTTP {} body={}",
+                        response.status_code,
+                        response.text[:500],
+                    )
                 response.raise_for_status()
                 data = response.json()
         except (httpx.HTTPError, ValueError) as exc:
@@ -87,3 +96,15 @@ class AtlosPaymentGateway(PaymentGateway):
             hmac.new(secret.encode(), payload, hashlib.sha256).digest()
         ).decode()
         return hmac.compare_digest(expected, signature)
+
+
+def _atlos_postback_url(backend_url: str) -> str | None:
+    parsed = urlparse(backend_url)
+    host = (parsed.hostname or "").lower()
+    if parsed.scheme != "https" or not host:
+        return None
+    if host in {"localhost", "127.0.0.1"} or host.endswith(".ngrok-free.app") or host.endswith(
+        ".ngrok.io"
+    ):
+        return None
+    return f"{backend_url.rstrip('/')}/api/payments/atlos/webhook"

@@ -56,11 +56,13 @@ def build_telegram_router(webhook_path: str) -> APIRouter:
             payload = await request.json()
             update_id = payload.get("update_id") if isinstance(payload, dict) else None
             logger.info(
-                "telegram webhook host={!r} forwarded={!r} username={!r} update_id={!r}",
+                "telegram webhook host={!r} forwarded={!r} username={!r} "
+                "update_id={!r} {}",
                 request_host,
                 forwarded_host,
                 registered.username,
                 update_id,
+                _update_summary(payload),
             )
             update = Update.model_validate(payload, context={"bot": registered.aiogram_bot})
             await bot_app.handle_update(update, registered=registered)
@@ -76,6 +78,19 @@ def build_telegram_router(webhook_path: str) -> APIRouter:
             raise
 
     return telegram_router
+
+
+def _update_summary(payload: object) -> str:
+    if not isinstance(payload, dict):
+        return "payload=invalid"
+    callback = payload.get("callback_query")
+    if isinstance(callback, dict):
+        return f"kind=callback data={callback.get('data')!r}"
+    message = payload.get("message") or payload.get("edited_message")
+    if isinstance(message, dict):
+        return f"kind=message text={(message.get('text') or '')[:80]!r}"
+    keys = [key for key in payload if key != "update_id"]
+    return f"kind=other keys={keys[:8]!r}"
 
 
 def _host_candidates(*, host: str, forwarded_host: str) -> list[str]:

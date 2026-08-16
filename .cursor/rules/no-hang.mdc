@@ -1,0 +1,21 @@
+---
+description: Never hang the session on Shell, DB, CI, or Vercel. Always set timeouts and fail fast.
+alwaysApply: true
+---
+
+# No hang
+
+A hung Shell is a failed turn. Prefer a 8–45s timeout and a written status over waiting.
+
+## Shell
+
+- Always set `block_until_ms` (default 15000). Never omit it for network, git push, pytest, npm, or Python.
+- Hard cap **120s** (user Cursor hook). Prefer pytest 60s, `gh` 20s, HTTP 40s, graphify 60s. If it may run longer, start it and **end the turn**; do not poll.
+- Never `gh run watch`, `AwaitShell` loops, `Start-Sleep` over 10s, or wait for CI to go green in-session. Push, paste the run URL, stop.
+- Never connect to production Postgres/Supabase from the agent (asyncpg/`list_active_bots` without `timeout=` hung this repo for minutes). Use `asyncpg.connect(..., timeout=8)` or skip.
+- `.venv` Python is fine for local pytest. Do not load `.env.prod` DATABASE_URL in ad-hoc `-c` scripts.
+- `python scripts/vercel_prod_info.py` only with `--skip-runtime` unless the user asked for live logs; never omit `--since`.
+
+## If a command hangs
+
+Kill it in your head: treat no output by `block_until_ms` as failure. Report what you already know. Do not retry the same unbounded command.

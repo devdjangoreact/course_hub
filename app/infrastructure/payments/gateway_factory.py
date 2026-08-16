@@ -1,6 +1,3 @@
-from loguru import logger
-
-from app.application.errors import ValidationError
 from app.domain.entities.order import Order
 from app.domain.entities.payment_intent import PaymentIntent
 from app.domain.entities.payment_settings import PaymentSettings
@@ -24,17 +21,11 @@ class RoutingPaymentGateway(PaymentGateway):
         buyer_email: str | None = None,
     ) -> PaymentIntent:
         if settings.provider == "atlos":
-            try:
-                return await self._atlos.create_payment(
-                    order,
-                    settings,
-                    buyer_email=buyer_email,
-                )
-            except ValidationError:
-                logger.warning("ATLOS invoice failed; using hosted test payment page")
-                return await self._simulated.create_payment(
-                    order, settings, buyer_email=buyer_email
-                )
+            return await self._atlos.create_payment(
+                order,
+                settings,
+                buyer_email=buyer_email,
+            )
         return await self._simulated.create_payment(
             order,
             settings,

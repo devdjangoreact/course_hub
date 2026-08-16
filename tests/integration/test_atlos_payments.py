@@ -171,7 +171,7 @@ async def test_atlos_webhook_idempotent(
         assert order.status == OrderStatus.PAID
 
 
-async def test_atlos_failure_falls_back_to_simulated_pay_page(
+async def test_atlos_failure_does_not_use_simulated_pay_page(
     client: AsyncClient, app, seeded: dict[str, int], monkeypatch
 ) -> None:
     import httpx
@@ -195,5 +195,5 @@ async def test_atlos_failure_falls_back_to_simulated_pay_page(
     created = await client.post(
         "/api/orders", json={"telegram_id": 9010, "course_id": seeded["course_id"]}
     )
-    assert created.status_code == 201
-    assert "/api/payments/simulate/pay?" in created.json()["payment"]["pay_url"]
+    assert created.status_code == 422
+    assert "simulate" not in str(created.json()).lower()

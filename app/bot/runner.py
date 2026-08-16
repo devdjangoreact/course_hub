@@ -1,11 +1,11 @@
 import asyncio
 
-from aiogram import Bot, Dispatcher
+from aiogram import Bot, Dispatcher, Router
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.exceptions import TelegramAPIError, TelegramRetryAfter
 from aiogram.fsm.storage.memory import MemoryStorage
-from aiogram.types import Update
+from aiogram.types import CallbackQuery, ErrorEvent, Update
 from loguru import logger
 
 from app.application.services.delivery_mailer import DeliveryMailer
@@ -44,6 +44,23 @@ def build_dispatcher(runtime: BotRuntime) -> Dispatcher:
     dispatcher.include_router(categories.router)
     dispatcher.include_router(search.router)
     dispatcher.include_router(order.router)
+    unmatched = Router(name="unmatched")
+
+    @unmatched.callback_query()
+    async def unmatched_callback(callback: CallbackQuery) -> None:
+        logger.warning("unmatched telegram callback data={!r}", callback.data)
+        await callback.answer()
+
+    dispatcher.include_router(unmatched)
+
+    @dispatcher.error()
+    async def log_handler_error(event: ErrorEvent) -> bool:
+        logger.opt(exception=event.exception).error(
+            "telegram handler error update_id={}",
+            event.update.update_id,
+        )
+        return False
+
     return dispatcher
 
 

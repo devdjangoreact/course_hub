@@ -46,3 +46,6 @@ venv/
 htmlcov/
 .vercel
 .graphify
+
+# App / fetch logs (local files; Vercel uses /tmp)
+logs/
