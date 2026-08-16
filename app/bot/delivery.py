@@ -19,11 +19,20 @@ async def edit_callback(callback: CallbackQuery, text: str, markup: object | Non
             try:
                 await edit_text(message, text, markup)
             except TelegramBadRequest:
-                await _send_callback_text(callback, text, markup)
+                try:
+                    await _send_callback_text(callback, text, markup)
+                except TelegramBadRequest:
+                    await _send_callback_text(callback, text, None)
         else:
-            await _send_callback_text(callback, text, markup)
+            try:
+                await _send_callback_text(callback, text, markup)
+            except TelegramBadRequest:
+                await _send_callback_text(callback, text, None)
     finally:
-        await callback.answer()
+        try:
+            await callback.answer()
+        except TelegramBadRequest:
+            pass
 
 
 async def _send_callback_text(

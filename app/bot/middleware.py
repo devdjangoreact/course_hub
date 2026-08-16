@@ -2,6 +2,7 @@ from collections.abc import Awaitable, Callable
 from typing import Any
 
 from aiogram import BaseMiddleware
+from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import CallbackQuery, Message, TelegramObject
 from loguru import logger
 
@@ -31,6 +32,11 @@ class ServicesMiddleware(BaseMiddleware):
     ) -> Any:
         runtime = self._runtime
         label = _event_label(event)
+        if isinstance(event, CallbackQuery):
+            try:
+                await event.answer()
+            except TelegramBadRequest:
+                pass
         async with runtime.database.session_factory() as session:
             runtime_settings = await load_runtime_settings(session, runtime.env_settings)
             data["catalog"] = build_catalog_service(session)

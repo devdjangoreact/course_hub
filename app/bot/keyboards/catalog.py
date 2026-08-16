@@ -14,9 +14,10 @@ class NamedItem(Protocol):
 def categories_keyboard(
     categories: list[NamedItem], language_code: str = DEFAULT_LANGUAGE
 ) -> InlineKeyboardMarkup:
+    # ponytail: Telegram allows 100 inline buttons; add pagination if the catalog is larger.
     rows = [
         [InlineKeyboardButton(text=category.name, callback_data=f"cat:{category.id}")]
-        for category in categories
+        for category in categories[:99]
     ]
     rows.append(
         [InlineKeyboardButton(text=message(language_code, "menu"), callback_data="menu:home")]
@@ -29,7 +30,7 @@ def courses_keyboard(
 ) -> InlineKeyboardMarkup:
     rows = [
         [InlineKeyboardButton(text=course.name, callback_data=f"course:{course.id}")]
-        for course in courses
+        for course in courses[:99]
     ]
     rows.append(
         [

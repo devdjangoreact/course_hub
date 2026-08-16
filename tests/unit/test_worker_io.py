@@ -8,6 +8,7 @@ import pytest
 
 CATALOG = Path(__file__).resolve().parents[2] / "tools" / "catalog"
 WORKER = CATALOG / "worker"
+pytest.importorskip("requests")
 sys.path.insert(0, str(CATALOG))
 sys.path.insert(0, str(WORKER))
 
