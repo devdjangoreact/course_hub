@@ -2,7 +2,6 @@ import base64
 import hashlib
 import hmac
 import uuid
-from urllib.parse import urlparse
 
 import httpx
 from loguru import logger
@@ -12,6 +11,7 @@ from app.domain.entities.order import Order
 from app.domain.entities.payment_intent import PaymentIntent
 from app.domain.entities.payment_settings import PaymentSettings
 from app.domain.repositories.payment_gateway import PaymentGateway
+from app.infrastructure.payments.setup import atlos_postback_url
 
 
 class AtlosPaymentGateway(PaymentGateway):
@@ -44,7 +44,7 @@ class AtlosPaymentGateway(PaymentGateway):
         if buyer_email:
             request_data["UserEmail"] = buyer_email
         if self._backend_url:
-            postback = _atlos_postback_url(self._backend_url)
+            postback = atlos_postback_url(self._backend_url)
             if postback:
                 request_data["PostbackUrl"] = postback
 
@@ -96,15 +96,3 @@ class AtlosPaymentGateway(PaymentGateway):
             hmac.new(secret.encode(), payload, hashlib.sha256).digest()
         ).decode()
         return hmac.compare_digest(expected, signature)
-
-
-def _atlos_postback_url(backend_url: str) -> str | None:
-    parsed = urlparse(backend_url)
-    host = (parsed.hostname or "").lower()
-    if parsed.scheme != "https" or not host:
-        return None
-    if host in {"localhost", "127.0.0.1"} or host.endswith(".ngrok-free.app") or host.endswith(
-        ".ngrok.io"
-    ):
-        return None
-    return f"{backend_url.rstrip('/')}/api/payments/atlos/webhook"

@@ -138,6 +138,19 @@ jobs:
             echo "VERCEL_PRODUCTION_URL variable not set; using BACKEND_URL from ENV_PROD as-is"
           fi
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install runtime dependencies (alembic, asyncpg)
+        run: pip install "poetry==1.8.4" && poetry install --only main --no-interaction --no-ansi
+
+      # Production ran without a migration step for a while, which is how orders.bot_id went
+      # missing and every order 500'd. The schema is now brought to head before the new code.
+      - name: Migrate the production database
+        run: poetry run python scripts/deploy_with_env_vercel.py --schema-only
+
       - name: Pull Vercel project settings
         env:
           VERCEL_TOKEN: ${{ steps.vercel_creds.outputs.token }}
@@ -199,14 +212,13 @@ jobs:
           echo "url=$URL" >> "$GITHUB_OUTPUT"
           echo "Deployed: $URL"
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
       # Runtime auto-set is intentionally off, so nothing else would notice a missing webhook.
       - name: Register and verify Telegram webhooks
-        run: python scripts/deploy_with_env_vercel.py --webhooks-only
+        run: poetry run python scripts/deploy_with_env_vercel.py --webhooks-only
+
+      # Creates one real invoice against the deployed host: a broken payment path is never silent.
+      - name: Verify payments are live
+        run: poetry run python scripts/deploy_with_env_vercel.py --payments-only
 
       - name: Scrub local env file
         if: always()

@@ -127,8 +127,10 @@ class OrderService:
         return (await self._settings()).currency
 
     async def payment_link_mode(self) -> str:
-        mode = str((await self._settings()).extra.get("checkout_mode", "direct"))
-        return mode if mode in ("direct", "checkout") else "direct"
+        from app.infrastructure.payments.setup import CHECKOUT_MODES, checkout_mode
+
+        mode = checkout_mode((await self._settings()).extra)
+        return mode if mode in CHECKOUT_MODES else "direct"
 
     async def confirm_payment(self, payment_reference: str, result: str) -> tuple[Order, bool]:
         status = _RESULT_TO_STATUS.get(result)

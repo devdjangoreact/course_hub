@@ -16,6 +16,7 @@ from app.infrastructure.db.models.order import OrderModel
 from app.infrastructure.db.models.payment_settings import PaymentSettingsModel
 from app.infrastructure.db.models.telegram_bot import TelegramBotModel
 from app.infrastructure.db.models.telegram_channel import TelegramChannelModel
+from app.infrastructure.payments.setup import PROVIDER_REQUIREMENTS, settings_problem
 from app.infrastructure.security.password import hash_password
 
 
@@ -250,10 +251,7 @@ class PaymentSettingsAdmin(ModelView, model=PaymentSettingsModel):
     }
     form_args = {
         "provider": {
-            "choices": [
-                ("simulated", "Simulated (local dev)"),
-                ("atlos", "ATLOS"),
-            ],
+            "choices": [(name, name) for name in sorted(PROVIDER_REQUIREMENTS)],
             "description": "Active payment provider for new orders.",
         },
         "api_key": {
@@ -279,6 +277,14 @@ class PaymentSettingsAdmin(ModelView, model=PaymentSettingsModel):
     name = "Payment Settings"
     name_plural = "Payment Settings"
     icon = "fa-solid fa-credit-card"
+
+    async def on_model_change(
+        self, data: dict, model: PaymentSettingsModel, is_created: bool, request  # noqa: ANN001
+    ) -> None:
+        """Reject a configuration the deploy gate would fail on, before it reaches the DB."""
+        problem = settings_problem({**data, "id": model.id})
+        if problem:
+            raise ValueError(problem)
 
 
 class TelegramBotAdmin(ModelView, model=TelegramBotModel):

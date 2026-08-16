@@ -18,13 +18,17 @@ Vercel rejects `_` in labels). If Vercel Hobby rejects `*.domain`, those DB host
 are the fallback.
 
 Every deploy path registers the Telegram webhook when it drifted and then verifies it via
-getWebhookInfo; a webhook that is missing or points elsewhere fails the deploy.
+getWebhookInfo; a webhook that is missing or points elsewhere fails the deploy. The database
+is brought to head before the deploy, and afterwards the payments owner creates one real
+invoice against the deployed host; either step failing fails the deploy.
 
 Usage (from repo root):
   python scripts/deploy_with_env_vercel.py
   python scripts/deploy_with_env_vercel.py --skip-domain
   python scripts/deploy_with_env_vercel.py --no-redeploy
   python scripts/deploy_with_env_vercel.py --webhooks-only
+  python scripts/deploy_with_env_vercel.py --schema-only
+  python scripts/deploy_with_env_vercel.py --payments-only
 """
 
 from __future__ import annotations
@@ -32,6 +36,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -51,6 +56,7 @@ from app.bot.webhook_setup import (  # noqa: E402
     ensure_webhook,
     fetch_username,
 )
+from app.infrastructure.payments.setup import ensure_payments  # noqa: E402
 
 REQUIRED_KEYS = (
     "DATABASE_URL",
@@ -102,6 +108,7 @@ def run(
     input_text: str | None = None,
     check: bool = True,
     timeout: int | None = None,
+    env: dict[str, str] | None = None,
 ) -> subprocess.CompletedProcess[str]:
     resolved = list(cmd)
     exe = resolve_executable(resolved[0])
@@ -117,6 +124,7 @@ def run(
             timeout=timeout,
             cwd=REPO_ROOT,
             shell=False,
+            env=env,
         )
     except FileNotFoundError as exc:
         raise RuntimeError(f"Command not found: {resolved[0]}") from exc
@@ -415,6 +423,22 @@ def _import_asyncpg() -> Any:
         return asyncpg
 
 
+def postgres_dsn(database_url: str) -> str:
+    """asyncpg takes a plain postgresql:// DSN, not the SQLAlchemy driver form."""
+    dsn = database_url.strip().replace("postgresql+asyncpg://", "postgresql://")
+    if dsn.startswith("postgres://"):
+        dsn = "postgresql://" + dsn[len("postgres://") :]
+    return dsn
+
+
+def redact(text: str, dsn: str) -> str:
+    """Subprocess output may quote the DSN back at us; the password must not reach a log."""
+    password = urllib.parse.urlparse(dsn).password or ""
+    if password:
+        text = text.replace(password, "***")
+    return text.replace(dsn, "***")
+
+
 def list_active_bots(database_url: str) -> list[tuple[str, str, str]]:
     """Return (username, token, webhook_secret) for active bots. Never prints secrets."""
     try:
@@ -423,9 +447,7 @@ def list_active_bots(database_url: str) -> list[tuple[str, str, str]]:
         print("WARNING: asyncpg missing; skip DB bot host list.")
         return []
 
-    dsn = database_url.strip().replace("postgresql+asyncpg://", "postgresql://")
-    if dsn.startswith("postgres://"):
-        dsn = "postgresql://" + dsn[len("postgres://") :]
+    dsn = postgres_dsn(database_url)
 
     async def fetch() -> list[tuple[str, str, str]]:
         conn = await asyncpg.connect(dsn, timeout=8)
@@ -508,6 +530,116 @@ def ensure_webhooks_or_fail(
     if failures:
         raise RuntimeError("Telegram webhook verification failed: " + "; ".join(failures))
     print(f"OK  {len(targets)} Telegram webhook(s) configured and verified.")
+
+
+def list_payment_settings(database_url: str) -> list[dict[str, Any]]:
+    """Every payment_settings row, for the payments gate. Never prints secrets."""
+    try:
+        asyncpg = _import_asyncpg()
+    except ImportError:
+        print("WARNING: asyncpg missing; payment settings rows are not validated.")
+        return []
+
+    dsn = postgres_dsn(database_url)
+
+    async def fetch() -> list[dict[str, Any]]:
+        conn = await asyncpg.connect(dsn, timeout=8)
+        try:
+            rows = await conn.fetch(
+                "select id, provider, api_key, secret_key, currency, is_active, extra "
+                "from payment_settings"
+            )
+        finally:
+            await conn.close()
+        return [dict(row) for row in rows]
+
+    try:
+        return asyncio.run(fetch())
+    except Exception as exc:  # noqa: BLE001 - the live probe below still has to pass
+        print(f"WARNING: could not read payment_settings ({type(exc).__name__}).")
+        return []
+
+
+def payments_probe_url(keys: dict[str, str], override: str = "") -> str:
+    """Host the payments probe talks to: --base-url, else BACKEND_URL, else the Vercel URL."""
+    for candidate in (override, keys.get("BACKEND_URL", ""), DEFAULT_VERCEL_URL):
+        value = candidate.strip().rstrip("/")
+        if value.startswith("http"):
+            return value
+    return DEFAULT_VERCEL_URL
+
+
+def ensure_payments_or_fail(keys: dict[str, str], *, base_url: str) -> None:
+    """Deploy-side wrapper around the payments owner. Raises when payments are not live."""
+    dsn = keys.get("DATABASE_URL", "").strip()
+    reason, summary = ensure_payments(
+        base_url=base_url,
+        rows=list_payment_settings(dsn) if dsn else [],
+        backend_url=keys.get("BACKEND_URL", "").strip(),
+    )
+    if reason:
+        raise RuntimeError(f"Payments are not live: {reason}")
+    print(f"OK  {summary}")
+
+
+def alembic_version_exists(database_url: str) -> bool | None:
+    """True/False when the database answered, None when it could not be reached."""
+    try:
+        asyncpg = _import_asyncpg()
+    except ImportError:
+        return None
+
+    dsn = postgres_dsn(database_url)
+
+    async def fetch() -> bool:
+        conn = await asyncpg.connect(dsn, timeout=8)
+        try:
+            return await conn.fetchval("select to_regclass('alembic_version')") is not None
+        finally:
+            await conn.close()
+
+    try:
+        return asyncio.run(fetch())
+    except Exception as exc:  # noqa: BLE001 - reported by the caller as "cannot check schema"
+        print(f"WARNING: could not inspect the database ({type(exc).__name__}).")
+        return None
+
+
+def _db_command(args: list[str], *, dsn: str, label: str) -> None:
+    result = run(
+        [sys.executable, *args],
+        check=False,
+        timeout=180,
+        env={**os.environ, "DATABASE_URL": dsn},
+    )
+    output = redact((result.stdout or "") + (result.stderr or ""), dsn).strip()
+    if output:
+        print(output)
+    if result.returncode != 0:
+        raise RuntimeError(f"{label} failed")
+
+
+def ensure_schema_or_fail(keys: dict[str, str]) -> None:
+    """Bring the database to the models before the new code serves its first request.
+
+    A database alembic already tracks is upgraded. One built by create_all (this project ran
+    for a while with no migration step, which is how orders.bot_id went missing in production)
+    is reconciled against the models and then stamped, so every later deploy is a plain upgrade.
+    """
+    dsn = postgres_dsn(keys.get("DATABASE_URL", ""))
+    if not dsn:
+        raise RuntimeError("DATABASE_URL missing: cannot migrate the database")
+    tracked = alembic_version_exists(dsn)
+    if tracked is None:
+        raise RuntimeError("could not reach the database to check its schema")
+    if tracked:
+        print("Applying alembic migrations...")
+        _db_command(["-m", "alembic", "upgrade", "head"], dsn=dsn, label="alembic upgrade head")
+    else:
+        print("No alembic_version table: reconciling a create_all database with the models...")
+        _db_command(["-m", "app.infrastructure.db.init_db"], dsn=dsn, label="schema reconcile")
+        _db_command(["-m", "alembic", "stamp", "head"], dsn=dsn, label="alembic stamp head")
+    print("OK  database schema is at head.")
 
 
 def vercel_recommended_cname(token: str, org_id: str, domain: str) -> str:
@@ -887,6 +1019,21 @@ def main() -> int:
         action="store_true",
         help="Only register and verify Telegram webhooks (no gh, no Vercel, no redeploy).",
     )
+    parser.add_argument(
+        "--schema-only",
+        action="store_true",
+        help="Only bring the database schema to head (no gh, no Vercel, no redeploy).",
+    )
+    parser.add_argument(
+        "--payments-only",
+        action="store_true",
+        help="Only verify that payments are live (no gh, no Vercel, no redeploy).",
+    )
+    parser.add_argument(
+        "--base-url",
+        default="",
+        help="Host the payments probe talks to; defaults to BACKEND_URL.",
+    )
     args = parser.parse_args()
 
     env_path = Path(args.env_file)
@@ -902,6 +1049,14 @@ def main() -> int:
         return 1
 
     keys = parse_env(raw)
+
+    if args.schema_only:
+        ensure_schema_or_fail(keys)
+        return 0
+
+    if args.payments_only:
+        ensure_payments_or_fail(keys, base_url=payments_probe_url(keys, args.base_url))
+        return 0
 
     if args.webhooks_only:
         base_domain = resolve_webhook_base_domain(keys)
@@ -977,6 +1132,8 @@ def main() -> int:
             file=sys.stderr,
         )
         return 1
+    ensure_schema_or_fail(keys)
+
     dsn = keys.get("DATABASE_URL", "").strip()
     ensure_webhooks_or_fail(
         keys,
@@ -1077,6 +1234,8 @@ def main() -> int:
                 f"WARNING: BACKEND_URL ({backend}) did not respond; "
                 f"verified via {working}."
             )
+
+    ensure_payments_or_fail(keys, base_url=payments_probe_url(keys, working))
 
     try:
         ok_logs = check_telegram_logs()

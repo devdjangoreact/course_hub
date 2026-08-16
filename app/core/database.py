@@ -13,7 +13,7 @@ from sqlalchemy.pool import NullPool
 from app.core.config import Settings
 
 
-def _async_database_url(url: str) -> str:
+def async_database_url(url: str) -> str:
     """Ensure Postgres URLs use the asyncpg driver for create_async_engine."""
     if url.startswith(("postgresql+asyncpg://", "sqlite+")):
         return url
@@ -33,7 +33,7 @@ def _supabase_ssl_context() -> ssl.SSLContext:
 
 
 def create_engine(settings: Settings) -> AsyncEngine:
-    url = _async_database_url(settings.database_url)
+    url = async_database_url(settings.database_url)
     connect_args: dict = {}
     engine_kwargs: dict = {"echo": False, "future": True}
     if settings.is_sqlite:

@@ -1,39 +1,45 @@
-from sqlalchemy import text
+from sqlalchemy import Column, Connection, inspect, text
 
 from app.core.config import Settings
 from app.core.database import Database
 from app.infrastructure.db import models  # noqa: F401  (register models on Base)
 from app.infrastructure.db.base import Base
 
-# Columns added after initial deploy; SQLite create_all does not alter existing tables.
-_SQLITE_COLUMN_PATCHES: dict[str, dict[str, str]] = {
-    "bot_users": {
-        "preferred_language": "VARCHAR NOT NULL DEFAULT 'ru'",
-    },
-    "bot_settings": {
-        "app_env": "VARCHAR NOT NULL DEFAULT 'development'",
-        "admin_session_secret": "VARCHAR NOT NULL DEFAULT ''",
-        "log_level": "VARCHAR NOT NULL DEFAULT 'INFO'",
-    },
-    "orders": {
-        "bot_id": "INTEGER",
-        "channel_id": "INTEGER",
-    },
-}
+
+def _column_ddl(column: Column, dialect: object) -> str:
+    """ALTER TABLE fragment for a column the models declare and the database lacks.
+
+    ponytail: a NOT NULL column without a server_default is added nullable, because there is
+    no value to backfill rows with; alembic owns that migration.
+    """
+    parts = [column.name, column.type.compile(dialect)]  # type: ignore[arg-type]
+    default = column.server_default
+    argument = getattr(default, "arg", None)
+    if argument is not None:
+        parts.append(f"DEFAULT {getattr(argument, 'text', argument)}")
+        if not column.nullable:
+            parts.append("NOT NULL")
+    return " ".join(parts)
 
 
-async def _apply_sqlite_column_patches(conn) -> None:
-    for table_name, columns in _SQLITE_COLUMN_PATCHES.items():
-        result = await conn.execute(text(f"PRAGMA table_info({table_name})"))
-        rows = result.fetchall()
-        if not rows:
+def _add_missing_columns(conn: Connection) -> None:
+    """create_all creates missing tables but never adds a column to an existing one.
+
+    Reads the columns off the models, so a database that drifted (or was built by create_all
+    before a migration landed) catches up without a hand-written patch list.
+    """
+    inspector = inspect(conn)
+    tables = set(inspector.get_table_names())
+    for table in Base.metadata.sorted_tables:
+        if table.name not in tables:
             continue
-        existing = {row[1] for row in rows}
-        for column_name, column_ddl in columns.items():
-            if column_name not in existing:
-                await conn.execute(
-                    text(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_ddl}")
-                )
+        present = {column["name"] for column in inspector.get_columns(table.name)}
+        for column in table.columns:
+            if column.name in present:
+                continue
+            ddl = f"ALTER TABLE {table.name} ADD COLUMN {_column_ddl(column, conn.dialect)}"
+            print(f"  {ddl}")
+            conn.exec_driver_sql(ddl)
 
 
 _FTS_STATEMENTS = (
@@ -69,10 +75,27 @@ _FTS_STATEMENTS = (
 
 
 async def create_schema(database: Database, settings: Settings) -> None:
-    """Create ORM tables and, on SQLite, the FTS5 search table + sync triggers."""
+    """Bring the database up to the models: tables, drifted columns, SQLite FTS5 objects."""
     async with database.engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        await conn.run_sync(_add_missing_columns)
         if settings.is_sqlite:
-            await _apply_sqlite_column_patches(conn)
             for statement in _FTS_STATEMENTS:
                 await conn.execute(text(statement))
+
+
+if __name__ == "__main__":  # deploy bootstrap for a database alembic does not track yet
+    import asyncio
+
+    from app.core.config import get_settings
+
+    async def _main() -> None:
+        settings = get_settings()
+        database = Database(settings)
+        try:
+            await create_schema(database, settings)
+        finally:
+            await database.dispose()
+        print(f"OK  schema matches the models ({'sqlite' if settings.is_sqlite else 'postgres'})")
+
+    asyncio.run(_main())
