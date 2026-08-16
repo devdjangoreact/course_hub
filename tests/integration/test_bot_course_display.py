@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from httpx import AsyncClient
 
+from app.application.services.runtime_settings import load_runtime_settings
 from app.bot.context import BotRuntime
 from app.bot.keyboards.catalog import course_detail_keyboard
 from app.bot.registry import RegisteredBot
@@ -21,7 +22,7 @@ def test_course_detail_keyboard_uses_localized_actions() -> None:
 
 
 async def test_payment_notification_only_delivers_access_for_paid_status(
-    app: FastAPI, client: AsyncClient, seeded: dict[str, int]
+    app: FastAPI, client: AsyncClient, seeded: dict[str, int], monkeypatch
 ) -> None:
     download = "https://download.example/paid-course"
     invite = "https://t.me/+catalog"
@@ -47,24 +48,36 @@ async def test_payment_notification_only_delivers_access_for_paid_status(
     )
     messages: list[str] = []
 
+    class _FakeSession:
+        async def close(self) -> None:
+            return None
+
     class FakeBot:
+        def __init__(self) -> None:
+            self.session = _FakeSession()
+
         async def send_message(self, telegram_id: int, text: str) -> None:
             assert telegram_id == 777
             messages.append(text)
 
+    monkeypatch.setattr("app.bot.runner._make_bot", lambda token, force_close=True: FakeBot())
+
+    async with app.state.db.session_factory() as session:
+        runtime_settings = await load_runtime_settings(session, app.state.settings)
     bot_app = BotApp(
         BotRuntime(
             database=app.state.db,
             env_settings=app.state.settings,
             rate_limiter=app.state.rate_limiter,
             payment_gateway=app.state.payment_gateway,
+            runtime_settings=runtime_settings,
         )
     )
     bot_app.registry.upsert(
         RegisteredBot(
             bot_id=1,
             username="testbot",
-            token="x",
+            token="123456:AACtesttokenfortestsxxxxxx",
             webhook_secret="",
             aiogram_bot=FakeBot(),  # type: ignore[arg-type]
         )

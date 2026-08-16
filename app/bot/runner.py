@@ -36,10 +36,12 @@ from app.infrastructure.db.repositories.telegram_channel_repository import (
 from app.infrastructure.email.smtp_mailer import SmtpMailer
 
 
-def _make_bot(token: str) -> Bot:
+def _make_bot(token: str, *, force_close: bool = True) -> Bot:
     session = AiohttpSession()
-    # ponytail: Vercel freeze keeps aiohttp keepalives; next callback then hits a dead socket.
-    session._connector_init["force_close"] = True
+    # ponytail: registry bots outlive one Vercel invoke; freeze leaves dead keepalives on
+    # the next callback. Short-lived Bots in handle_update/notify close in-request — OK.
+    if force_close:
+        session._connector_init["force_close"] = True
     return Bot(
         token=token,
         session=session,
@@ -61,7 +63,6 @@ def build_dispatcher(runtime: BotRuntime) -> Dispatcher:
     @unmatched.callback_query()
     async def unmatched_callback(callback: CallbackQuery) -> None:
         logger.warning("unmatched telegram callback data={!r}", callback.data)
-        await callback.answer()
 
     dispatcher.include_router(unmatched)
 
@@ -185,7 +186,7 @@ class BotApp:
         if self._dispatcher is None:
             logger.warning("Ignoring Telegram update; bot is not started.")
             return
-        bot = _make_bot(registered.token)
+        bot = _make_bot(registered.token, force_close=False)
         token = set_hub_bot_id(registered.bot_id)
         try:
             await self._dispatcher.feed_update(bot, update)
@@ -222,7 +223,7 @@ class BotApp:
         registered = self._resolve_notify_bot(bot_id)
         if registered is None:
             return
-        bot = _make_bot(registered.token)
+        bot = _make_bot(registered.token, force_close=False)
         try:
             await self._notify_payment_status(bot, telegram_id, order_id, status)
         finally:

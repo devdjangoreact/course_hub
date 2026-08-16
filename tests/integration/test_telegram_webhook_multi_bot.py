@@ -231,3 +231,76 @@ async def test_webhook_binds_bot_on_start_update(app: FastAPI, monkeypatch) -> N
     assert fake.calls == ["alpha"]
     update = fake.updates[0]
     assert getattr(update, "bot", None) is alpha.aiogram_bot
+
+
+async def test_callback_acks_once_without_bot_settings_select(
+    app: FastAPI, monkeypatch
+) -> None:
+    """One callback update → one answerCallbackQuery, no bot_settings reload."""
+    from aiogram.client.session.aiohttp import AiohttpSession
+    from aiogram.methods import AnswerCallbackQuery
+    from aiogram.types import CallbackQuery, Update, User
+
+    from app.bot.context import BotRuntime
+    from app.bot.runner import BotApp, build_dispatcher
+    from app.infrastructure.settings_store.bot_settings_repository import (
+        SqlBotSettingsRepository,
+    )
+
+    settings = app.state.settings
+    async with app.state.db.session_factory() as session:
+        runtime = await load_runtime_settings(session, settings)
+
+    bot_app = BotApp(
+        BotRuntime(
+            database=app.state.db,
+            env_settings=settings,
+            rate_limiter=app.state.rate_limiter,
+            payment_gateway=app.state.payment_gateway,
+            runtime_settings=runtime,
+        )
+    )
+    bot_app._dispatcher = build_dispatcher(bot_app._runtime)
+    registered = RegisteredBot(
+        bot_id=1,
+        username="latency",
+        token="1:TEST",
+        webhook_secret="",
+        aiogram_bot=_FakeAiogramBot(),  # type: ignore[arg-type]
+    )
+    bot_app.registry.upsert(registered)
+
+    api_methods: list[str] = []
+
+    async def _fake_make_request(self, bot, method, timeout=None):  # noqa: ANN001
+        del self, bot, timeout
+        api_methods.append(type(method).__name__)
+        if isinstance(method, AnswerCallbackQuery):
+            return True
+        raise AssertionError(f"unexpected Telegram method: {type(method).__name__}")
+
+    monkeypatch.setattr(AiohttpSession, "make_request", _fake_make_request)
+
+    settings_gets = 0
+    original_get = SqlBotSettingsRepository.get
+
+    async def _counting_get(self):  # noqa: ANN001
+        nonlocal settings_gets
+        settings_gets += 1
+        return await original_get(self)
+
+    monkeypatch.setattr(SqlBotSettingsRepository, "get", _counting_get)
+
+    update = Update(
+        update_id=99,
+        callback_query=CallbackQuery(
+            id="cq-latency",
+            from_user=User(id=42, is_bot=False, first_name="A"),
+            chat_instance="ci",
+            data="no:such:callback",
+        ),
+    )
+    await bot_app.handle_update(update, registered=registered)
+
+    assert api_methods == ["AnswerCallbackQuery"]
+    assert settings_gets == 0

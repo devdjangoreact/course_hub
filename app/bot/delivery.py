@@ -14,25 +14,19 @@ async def edit_text(message: object, text: str, markup: object | None = None) ->
 
 async def edit_callback(callback: CallbackQuery, text: str, markup: object | None = None) -> None:
     message = callback.message
-    try:
-        if message is not None and hasattr(message, "edit_text"):
-            try:
-                await edit_text(message, text, markup)
-            except TelegramBadRequest:
-                try:
-                    await _send_callback_text(callback, text, markup)
-                except TelegramBadRequest:
-                    await _send_callback_text(callback, text, None)
-        else:
+    if message is not None and hasattr(message, "edit_text"):
+        try:
+            await edit_text(message, text, markup)
+        except TelegramBadRequest:
             try:
                 await _send_callback_text(callback, text, markup)
             except TelegramBadRequest:
                 await _send_callback_text(callback, text, None)
-    finally:
+    else:
         try:
-            await callback.answer()
+            await _send_callback_text(callback, text, markup)
         except TelegramBadRequest:
-            pass
+            await _send_callback_text(callback, text, None)
 
 
 async def _send_callback_text(

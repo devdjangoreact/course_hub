@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 
+from app.application.services.runtime_settings import RuntimeSettings
 from app.core.config import Settings
 from app.core.database import Database
 from app.domain.repositories.payment_gateway import PaymentGateway
@@ -14,3 +15,4 @@ class BotRuntime:
     env_settings: Settings
     rate_limiter: RateLimiter
     payment_gateway: PaymentGateway
+    runtime_settings: RuntimeSettings

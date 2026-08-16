@@ -72,6 +72,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             env_settings=settings,
             rate_limiter=app.state.rate_limiter,
             payment_gateway=app.state.payment_gateway,
+            runtime_settings=runtime,
         )
     )
     app.state.bot_app = bot_app

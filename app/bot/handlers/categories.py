@@ -131,4 +131,3 @@ async def show_course(
             orders,
             replace=True,
         )
-    await callback.answer()

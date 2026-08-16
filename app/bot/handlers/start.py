@@ -111,7 +111,6 @@ async def handle_language_selected(
 ) -> None:
     language = str(callback.data).split(":", 1)[1]
     if not await localization.is_supported(language):
-        await callback.answer()
         return
     existing = await bot_users.get_by_telegram_id(callback.from_user.id)
     await bot_users.upsert(

@@ -119,7 +119,6 @@ async def create_order(
     if callback.from_user is None:
         await callback.answer("Unable to identify user.")
         return
-    await callback.answer()
 
     language = await _language_for(callback.from_user.id, bot_users, localization)
     course_id = int(str(callback.data).split(":", 1)[1])
