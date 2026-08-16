@@ -2,6 +2,7 @@ import asyncio
 
 from aiogram import Bot, Dispatcher, Router
 from aiogram.client.default import DefaultBotProperties
+from aiogram.client.session.aiohttp import AiohttpSession
 from aiogram.enums import ParseMode
 from aiogram.exceptions import TelegramAPIError, TelegramRetryAfter
 from aiogram.fsm.storage.memory import MemoryStorage
@@ -33,6 +34,17 @@ from app.infrastructure.db.repositories.telegram_channel_repository import (
     SqlTelegramChannelRepository,
 )
 from app.infrastructure.email.smtp_mailer import SmtpMailer
+
+
+def _make_bot(token: str) -> Bot:
+    session = AiohttpSession()
+    # ponytail: Vercel freeze keeps aiohttp keepalives; next callback then hits a dead socket.
+    session._connector_init["force_close"] = True
+    return Bot(
+        token=token,
+        session=session,
+        default=DefaultBotProperties(parse_mode=ParseMode.HTML),
+    )
 
 
 def build_dispatcher(runtime: BotRuntime) -> Dispatcher:
@@ -84,8 +96,13 @@ class BotApp:
             webhook_path=path,
         )
         secret = registered.webhook_secret or None
+        allowed = (
+            self._dispatcher.resolve_used_update_types() if self._dispatcher is not None else None
+        )
         try:
-            await registered.aiogram_bot.set_webhook(url=url, secret_token=secret)
+            await registered.aiogram_bot.set_webhook(
+                url=url, secret_token=secret, allowed_updates=allowed
+            )
             logger.info("Telegram webhook set for @{} to {}", registered.username, url)
         except TelegramRetryAfter as exc:
             logger.warning(
@@ -118,10 +135,7 @@ class BotApp:
             if row.id is None or not row.token:
                 logger.warning("Skipping bot username={!r}: missing id or token", row.username)
                 continue
-            aiogram_bot = Bot(
-                token=row.token,
-                default=DefaultBotProperties(parse_mode=ParseMode.HTML),
-            )
+            aiogram_bot = _make_bot(row.token)
             entries.append(
                 RegisteredBot(
                     bot_id=row.id,
@@ -187,11 +201,13 @@ class BotApp:
         if self._dispatcher is None:
             logger.warning("Ignoring Telegram update; bot is not started.")
             return
+        bot = _make_bot(registered.token)
         token = set_hub_bot_id(registered.bot_id)
         try:
-            await self._dispatcher.feed_update(registered.aiogram_bot, update)
+            await self._dispatcher.feed_update(bot, update)
         finally:
             reset_hub_bot_id(token)
+            await bot.session.close()
 
     def _resolve_notify_bot(self, bot_id: int | None) -> RegisteredBot | None:
         if bot_id is not None:
@@ -222,7 +238,19 @@ class BotApp:
         registered = self._resolve_notify_bot(bot_id)
         if registered is None:
             return
-        bot = registered.aiogram_bot
+        bot = _make_bot(registered.token)
+        try:
+            await self._notify_payment_status(bot, telegram_id, order_id, status)
+        finally:
+            await bot.session.close()
+
+    async def _notify_payment_status(
+        self,
+        bot: Bot,
+        telegram_id: int,
+        order_id: int,
+        status: str,
+    ) -> None:
         async with self._runtime.database.session_factory() as session:
             user = await SqlBotUserRepository(session).get_by_telegram_id(telegram_id)
             order = await SqlOrderRepository(session).get(order_id)
