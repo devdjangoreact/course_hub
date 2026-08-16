@@ -21,6 +21,9 @@ def _atlos_sign(secret: str, raw: bytes) -> str:
 
 
 class _InvoiceResponse:
+    status_code = 200
+    text = ""
+
     def raise_for_status(self) -> None:
         return None
 
