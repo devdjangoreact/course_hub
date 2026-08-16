@@ -8,23 +8,14 @@
 # Pyrogram sessions (phone / auth files)
 sessions_parogram/
 
-# Telegram group/channel exports (local)
-data/telegram_exports/
-
-# Local catalog course JSON
-data/catalog/categories/
+# Local data (catalog dumps, proxies, worker runs, telegram exports)
+data/
 
 # Import payload with live bot tokens (keep example.json)
 scripts/telegram_catalog.flancki.json
 
 # Bot dumps with tokens / personal Telegram data
 scripts/bots/
-
-# Proxy pool credentials (host:port:user:pass)
-data/catalog/proxies.json
-
-# Ephemeral docker worker batch mounts
-data/catalog/.worker_runs/
 
 # Python
 __pycache__/
