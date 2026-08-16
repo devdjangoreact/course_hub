@@ -4,7 +4,7 @@ from aiogram import Bot, Dispatcher, Router
 from aiogram.client.default import DefaultBotProperties
 from aiogram.client.session.aiohttp import AiohttpSession
 from aiogram.enums import ParseMode
-from aiogram.exceptions import TelegramAPIError, TelegramRetryAfter
+from aiogram.exceptions import TelegramAPIError
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import CallbackQuery, ErrorEvent, Update
 from loguru import logger
@@ -23,8 +23,8 @@ from app.bot.registry import (
     reset_hub_bot_id,
     set_hub_bot_id,
 )
+from app.bot.webhook_setup import ensure_webhook
 from app.core.config import TelegramMode
-from app.core.domain_host import webhook_url_for_bot
 from app.domain.entities.order_status import OrderStatus
 from app.infrastructure.db.repositories.bot_user_repository import SqlBotUserRepository
 from app.infrastructure.db.repositories.course_repository import SqlCourseRepository
@@ -88,34 +88,18 @@ class BotApp:
     async def set_webhook_for(
         self, registered: RegisteredBot, base_domain: str, path: str
     ) -> None:
-        if not path.startswith("/"):
-            path = "/" + path
-        url = webhook_url_for_bot(
+        failure = await asyncio.to_thread(
+            ensure_webhook,
             username=registered.username,
+            token=registered.token,
             base_domain=base_domain,
+            secret=registered.webhook_secret,
             webhook_path=path,
         )
-        secret = registered.webhook_secret or None
-        allowed = (
-            self._dispatcher.resolve_used_update_types() if self._dispatcher is not None else None
-        )
-        try:
-            await registered.aiogram_bot.set_webhook(
-                url=url, secret_token=secret, allowed_updates=allowed
-            )
-            logger.info("Telegram webhook set for @{} to {}", registered.username, url)
-        except TelegramRetryAfter as exc:
-            logger.warning(
-                "Telegram setWebhook rate-limited (retry after {}s); continuing. bot=@{} url={}",
-                exc.retry_after,
-                registered.username,
-                url,
-            )
-        except TelegramAPIError:
-            logger.exception(
-                "Telegram setWebhook failed for @{}; continuing without blocking startup.",
-                registered.username,
-            )
+        if failure:
+            logger.error("Telegram webhook not live; continuing startup: {}", failure)
+            return
+        logger.info("Telegram webhook verified for @{}", registered.username)
 
     async def start(self) -> None:
         self._dispatcher = build_dispatcher(self._runtime)

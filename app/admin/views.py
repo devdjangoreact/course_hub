@@ -1,3 +1,6 @@
+import asyncio
+
+from loguru import logger
 from sqladmin import ModelView
 from wtforms import PasswordField, SelectField
 
@@ -337,6 +340,29 @@ class TelegramBotAdmin(ModelView, model=TelegramBotModel):
         model.username = await fetch_bot_username(token)
         if not model.title:
             model.title = model.username
+
+    async def after_model_change(
+        self, data: dict, model: TelegramBotModel, is_created: bool, request  # noqa: ANN001
+    ) -> None:
+        """Configure the webhook here too, so a bot added by hand needs no deploy to work."""
+        if not model.is_active:
+            return
+        from app.bot.webhook_setup import ensure_webhook
+
+        settings = request.app.state.settings
+        runtime = getattr(request.app.state, "runtime_settings", None)
+        failure = await asyncio.to_thread(
+            ensure_webhook,
+            username=model.username,
+            token=model.token,
+            base_domain=runtime.base_domain if runtime is not None else settings.base_domain,
+            secret=model.webhook_secret or "",
+            webhook_path=settings.telegram_webhook_path,
+        )
+        if failure:
+            logger.error("Telegram webhook not live after admin save: {}", failure)
+            raise ValueError(f"Bot saved, but its webhook is not live: {failure}")
+        logger.info("Telegram webhook verified for @{} after admin save", model.username)
 
 
 class TelegramChannelAdmin(ModelView, model=TelegramChannelModel):

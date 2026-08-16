@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from aiogram import Bot
+import asyncio
 
-from app.core.domain_host import normalize_bot_username
+from app.bot.webhook_setup import fetch_username
 
 
 async def fetch_bot_username(token: str) -> str:
@@ -12,12 +12,7 @@ async def fetch_bot_username(token: str) -> str:
     token = token.strip()
     if not token:
         raise ValueError("Bot token is empty")
-    bot = Bot(token=token)
-    try:
-        me = await bot.get_me()
-    finally:
-        await bot.session.close()
-    username = getattr(me, "username", None)
-    if not username or not str(username).strip():
+    username = await asyncio.to_thread(fetch_username, token)
+    if not username:
         raise ValueError("Telegram getMe returned no username")
-    return normalize_bot_username(str(username))
+    return username
